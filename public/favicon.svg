@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="240" fill="#0A7BD8"/>
+
+  <text x="256" y="245" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" 
+  font-weight="900" font-size="170" letter-spacing="-6">
+    w4A
+  </text>
+
+  <!-- "Web4All" -->
+  <text x="256" y="338" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" 
+  font-weight="700" font-size="62" letter-spacing="0">
+    Web4All
+  </text>
+</svg>
