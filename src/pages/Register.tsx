@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -9,7 +9,26 @@ export const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+  const [statusVisible, setStatusVisible] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showVerificationNotice, setShowVerificationNotice] = useState(false)
+
+  useEffect(() => {
+    if (!status) {
+      return
+    }
+    setStatusVisible(true)
+    const hideTimer = window.setTimeout(() => {
+      setStatusVisible(false)
+    }, 5000)
+    const clearTimer = window.setTimeout(() => {
+      setStatus(null)
+    }, 5300)
+    return () => {
+      window.clearTimeout(hideTimer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [status])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -27,7 +46,7 @@ export const Register = () => {
     }
 
     setLoading(false)
-    navigate('/app', { replace: true })
+    setShowVerificationNotice(true)
   }
 
   return (
@@ -37,9 +56,10 @@ export const Register = () => {
       </a>
       <section className="auth-card">
         <header>
-          <h1>Criar conta</h1>
-          <p className="muted">
-            Configure seu perfil e personalize acessibilidade em poucos passos.
+          <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
+          <h1 className="auth-title">Criar conta</h1>
+          <p className="auth-subtitle">
+            Cadastre-se para acessar todos os recursos da plataforma
           </p>
         </header>
         <form id="register-form" onSubmit={handleSubmit} className="form-grid">
@@ -59,7 +79,7 @@ export const Register = () => {
             {loading ? 'Criando...' : 'Criar conta'}
           </button>
           {status ? (
-            <p className="status error" role="alert">
+            <p className={`status error${statusVisible ? '' : ' is-hidden'}`} role="alert">
               {status}
             </p>
           ) : null}
@@ -69,6 +89,25 @@ export const Register = () => {
           <Link to="/login">Entrar</Link>
         </footer>
       </section>
+      {showVerificationNotice ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <h2>Confirmacao de email</h2>
+            <p className="muted">
+              Enviamos um email para voce confirmar sua conta. Verifique sua caixa de entrada.
+            </p>
+            <div className="modal-actions">
+              <button type="button"
+                onClick={() => {
+                  setShowVerificationNotice(false)
+                  navigate('/login', { replace: true })
+                }}>
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

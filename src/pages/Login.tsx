@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -8,7 +8,25 @@ export const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+  const [statusVisible, setStatusVisible] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!status) {
+      return
+    }
+    setStatusVisible(true)
+    const hideTimer = window.setTimeout(() => {
+      setStatusVisible(false)
+    }, 5000)
+    const clearTimer = window.setTimeout(() => {
+      setStatus(null)
+    }, 5300)
+    return () => {
+      window.clearTimeout(hideTimer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [status])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -30,9 +48,10 @@ export const Login = () => {
       </a>
       <section className="auth-card">
         <header>
-          <h1>Bem-vindo de volta</h1>
-          <p className="muted">
-            Entre para acessar suas atividades e preferencias de acessibilidade.
+          <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
+          <h1 className="auth-title">Bem-vindo de volta</h1>
+          <p className="auth-subtitle">
+            Acesse sua conta para continuar
           </p>
         </header>
         <form id="login-form" onSubmit={handleSubmit} className="form-grid">
@@ -48,7 +67,7 @@ export const Login = () => {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
           {status ? (
-            <p className="status error" role="alert">
+            <p className={`status error${statusVisible ? '' : ' is-hidden'}`} role="alert">
               {status}
             </p>
           ) : null}

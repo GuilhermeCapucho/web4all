@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export const TopNav = () => {
-  const { user, signOut } = useAuth()
+  const { signOut } = useAuth()
 
   const handleSignOut = async () => {
     await signOut()
@@ -12,7 +12,7 @@ export const TopNav = () => {
     <header className="top-nav">
       <div className="brand">
         <div>
-          <strong>Web4All</strong>
+          <img className="brand-logo" src="/favicon.svg" alt="Web4All" />
         </div>
       </div>
       <nav className="nav-links" aria-label="Navegacao principal">
@@ -20,7 +20,6 @@ export const TopNav = () => {
         <NavLink to="/profile">Perfil</NavLink>
       </nav>
       <div className="nav-actions">
-        <span className="muted">{user?.email}</span>
         <button type="button" className="ghost" onClick={handleSignOut}>
           Sair
         </button>

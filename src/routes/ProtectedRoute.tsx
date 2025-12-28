@@ -11,8 +11,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (loading) {
     return (
-      <div className="status" role="status" aria-live="polite">
-        Carregando sessao...
+      <div className="page-loader" role="status" aria-live="polite" aria-label="Carregando">
+        <div className="spinner" aria-hidden="true" />
       </div>
     )
   }
