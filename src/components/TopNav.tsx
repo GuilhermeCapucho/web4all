@@ -11,9 +11,9 @@ export const TopNav = () => {
   return (
     <header className="top-nav">
       <div className="brand">
-        <div>
+        <NavLink to="/app" aria-label="Ir para pagina principal">
           <img className="brand-logo" src="/favicon.svg" alt="Web4All" />
-        </div>
+        </NavLink>
       </div>
       <nav className="nav-links" aria-label="Navegacao principal">
         <NavLink to="/app">Atividades</NavLink>
