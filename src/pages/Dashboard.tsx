@@ -1,36 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import type { Activity, ChecklistItem } from '../types'
 import { TopNav } from '../components/TopNav'
-
-type ActivityFormState = {
-  title: string
-  description: string
-  status: Activity['status']
-  category: string
-  due_date: string
-  due_time: string
-  duration_minutes: string
-  recurrence: 'none' | NonNullable<Activity['recurrence']>
-}
+import { AgendaPanel } from '../components/dashboard/AgendaPanel'
+import { ActivityModal, type ActivityFormState } from '../components/dashboard/ActivityModal'
+import { DashboardHero } from '../components/dashboard/DashboardHero'
+import { ToastStack } from '../components/dashboard/ToastStack'
+import { formatTime, getStreak, toDateString } from '../components/dashboard/activityHelpers'
 
 type Toast = {
   id: string
   message: string
   tone: 'info' | 'success' | 'warning'
-}
-
-const statusLabels: Record<Activity['status'], string> = {
-  todo: 'A fazer',
-  doing: 'Em andamento',
-  paused: 'Pausada',
-  done: 'Concluida',
-}
-
-const recurrenceLabels: Record<NonNullable<Activity['recurrence']>, string> = {
-  daily: 'Diaria',
-  weekly: 'Semanal',
 }
 
 const emptyForm: ActivityFormState = {
@@ -44,46 +26,13 @@ const emptyForm: ActivityFormState = {
   recurrence: 'none',
 }
 
-const toDateString = (date: Date) => date.toISOString().slice(0, 10)
-
-const getStreak = (items: Activity[]) => {
-  const days = new Set(
-    items
-      .map((activity) => activity.completed_at)
-      .filter(Boolean)
-      .map((value) => value?.slice(0, 10)),
-  )
-
-  if (days.size === 0) {
-    return 0
-  }
-
-  let streak = 0
-  let current = new Date()
-  while (days.has(toDateString(current))) {
-    streak += 1
-    current = new Date(current.getTime() - 24 * 60 * 60 * 1000)
-  }
-  return streak
-}
-
-const formatDate = (value: string | null) => {
-  if (!value) return 'Sem data'
-  const date = new Date(`${value}T00:00:00`)
-  return date.toLocaleDateString('pt-BR')
-}
-
-const formatTime = (value: string | null) => {
-  if (!value) return 'Sem horario'
-  return value.slice(0, 5)
-}
-
 export const Dashboard = () => {
   const { user } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({})
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<string | null>(null)
+  const [liveMessage, setLiveMessage] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [form, setForm] = useState<ActivityFormState>(emptyForm)
@@ -94,13 +43,32 @@ export const Dashboard = () => {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [checklistDrafts, setChecklistDrafts] = useState<Record<string, string>>({})
   const notifiedRef = useRef<Set<string>>(new Set())
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   const addToast = useCallback((message: string, tone: Toast['tone'] = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
     setToasts((current) => [...current, { id, message, tone }])
+    setLiveMessage(message)
     window.setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id))
     }, 4500)
+  }, [])
+
+  const closeForm = useCallback(() => {
+    setFormOpen(false)
+    setSaving(false)
+  }, [])
+
+  const handleFormChange = useCallback((next: Partial<ActivityFormState>) => {
+    setForm((current) => ({ ...current, ...next }))
+  }, [])
+
+  const handleChecklistDraftChange = useCallback((activityId: string, value: string) => {
+    setChecklistDrafts((current) => ({
+      ...current,
+      [activityId]: value,
+    }))
   }, [])
 
   const logHistory = useCallback(
@@ -185,6 +153,28 @@ export const Dashboard = () => {
   }, [fetchActivities])
 
   useEffect(() => {
+    if (!formOpen) {
+      previousFocusRef.current?.focus()
+      return
+    }
+    const focusTimer = window.setTimeout(() => {
+      titleInputRef.current?.focus()
+    }, 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [formOpen])
+
+  useEffect(() => {
+    if (!formOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      closeForm()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [closeForm, formOpen])
+
+  useEffect(() => {
     if (activities.length === 0) return
     const checkReminders = () => {
       const now = new Date()
@@ -205,8 +195,8 @@ export const Dashboard = () => {
     return () => window.clearInterval(interval)
   }, [activities, addToast])
 
-
   const openCreate = () => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
     setFormMode('create')
     setEditingId(null)
     setForm(emptyForm)
@@ -214,6 +204,7 @@ export const Dashboard = () => {
   }
 
   const openEdit = (activity: Activity) => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
     setFormMode('edit')
     setEditingId(activity.id)
     setForm({
@@ -229,12 +220,7 @@ export const Dashboard = () => {
     setFormOpen(true)
   }
 
-  const closeForm = () => {
-    setFormOpen(false)
-    setSaving(false)
-  }
-
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!user) return
     setSaving(true)
@@ -261,9 +247,7 @@ export const Dashboard = () => {
           user_id: user.id,
           completed_at: form.status === 'done' ? now : null,
         })
-        .select(
-          'id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
-        )
+        .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
         .single()
 
       setSaving(false)
@@ -291,8 +275,8 @@ export const Dashboard = () => {
 
     const original = activities.find((activity) => activity.id === editingId)
     const fromStatus = original?.status
-    const completedAt = payload.status === 'done' ? fromStatus === 'done' ? original?.completed_at ?? now : now : null
-    const updates = {...payload, completed_at: completedAt, reopened_at: null as string | null}
+    const completedAt = payload.status === 'done' ? (fromStatus === 'done' ? original?.completed_at ?? now : now) : null
+    const updates = { ...payload, completed_at: completedAt, reopened_at: null as string | null }
 
     if (fromStatus === 'done' && payload.status !== 'done') {
       updates.reopened_at = now
@@ -303,9 +287,7 @@ export const Dashboard = () => {
       .update(updates)
       .eq('id', editingId)
       .eq('user_id', user.id)
-      .select(
-        'id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
-      )
+      .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
       .single()
 
     setSaving(false)
@@ -326,11 +308,7 @@ export const Dashboard = () => {
   const handleDelete = async (activityId: string) => {
     if (!user) return
     setStatus(null)
-    const { error } = await supabase
-      .from('activities')
-      .delete()
-      .eq('id', activityId)
-      .eq('user_id', user.id)
+    const { error } = await supabase.from('activities').delete().eq('id', activityId).eq('user_id', user.id)
 
     if (error) {
       setStatus(error.message)
@@ -360,9 +338,7 @@ export const Dashboard = () => {
       .update(updates)
       .eq('id', activity.id)
       .eq('user_id', user.id)
-      .select(
-        'id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
-      )
+      .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
       .single()
 
     if (error) {
@@ -428,9 +404,7 @@ export const Dashboard = () => {
   const todayPending = activities.filter(
     (activity) => activity.due_date === todayString && activity.status !== 'done',
   ).length
-  const todayDone = activities.filter(
-    (activity) => activity.completed_at?.slice(0, 10) === todayString,
-  ).length
+  const todayDone = activities.filter((activity) => activity.completed_at?.slice(0, 10) === todayString).length
 
   const streak = getStreak(activities)
   const completedCount = activities.filter((activity) => activity.status === 'done').length
@@ -476,373 +450,46 @@ export const Dashboard = () => {
     <div className="app-shell">
       <TopNav />
       <main className="dashboard" id="main-content">
-        <section className="panel panel-hero">
-          <div className="hero-text">
-            <div className="hero-top">
-              <div>
-                <h1>Resumo rapido</h1>
-                <p className="muted">
-                  Hoje: {todayPending} pendentes • {todayDone} concluida{todayDone === 1 ? '' : 's'}
-                </p>
-              </div>
-              <button type="button" onClick={openCreate}>
-                Nova atividade
-              </button>
-            </div>
-            <div className="hero-metrics">
-              <div className="metric-card">
-                <span className="metric-label">Streak</span>
-                <strong>{streak} dia{streak === 1 ? '' : 's'}</strong>
-              </div>
-              <div className="metric-card">
-                <span className="metric-label">Medalhas</span>
-                <div className="medal-row">
-                  {medals.map((medal) => (
-                    <span
-                      key={medal.id}
-                      className={`medal ${medal.unlocked ? 'medal--on' : 'medal--off'}`}
-                    >
-                      {medal.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="panel">
-          <header className="panel-header">
-            <div>
-              <h2>Agenda</h2>
-              <p className="muted">Organize por lista, hoje ou semana.</p>
-            </div>
-            <div className="view-tabs" role="tablist" aria-label="Visoes">
-              <button
-                type="button"
-                className={view === 'list' ? 'tab is-active' : 'tab'}
-                onClick={() => setView('list')}
-                role="tab"
-              >
-                Lista
-              </button>
-              <button
-                type="button"
-                className={view === 'today' ? 'tab is-active' : 'tab'}
-                onClick={() => setView('today')}
-                role="tab"
-              >
-                Hoje
-              </button>
-              <button
-                type="button"
-                className={view === 'week' ? 'tab is-active' : 'tab'}
-                onClick={() => setView('week')}
-                role="tab"
-              >
-                Semana
-              </button>
-            </div>
-          </header>
-
-          <div className="filters-row">
-            <label className="filter-field">
-              Busca
-              <input
-                type="search"
-                value={filters.search}
-                onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-                placeholder="Buscar por titulo ou descricao"
-              />
-            </label>
-            <label className="filter-field">
-              Status
-              <select
-                value={filters.status}
-                onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-              >
-                <option value="all">Todos</option>
-                <option value="todo">A fazer</option>
-                <option value="doing">Em andamento</option>
-                <option value="paused">Pausada</option>
-                <option value="done">Concluida</option>
-              </select>
-            </label>
-            <label className="filter-field">
-              Categoria
-              <select
-                value={filters.category}
-                onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
-              >
-                <option value="all">Todas</option>
-                <option value="none">Sem categoria</option>
-                {categoryOptions.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {status ? (
-            <p className="status error" role="alert">
-              {status}
-            </p>
-          ) : null}
-
-          <div className="activity-list" aria-live="polite">
-            {loading ? (
-              <div className="agenda-loading" role="status" aria-live="polite">
-                <div className="spinner" aria-hidden="true" />
-                <span className="sr-only">Carregando agenda</span>
-              </div>
-            ) : null}
-            {visibleActivities.length === 0 && !loading ? (
-              <p className="muted">Nenhuma atividade encontrada.</p>
-            ) : null}
-            {!loading &&
-              visibleActivities.map((activity) => {
-              const items = checklists[activity.id] ?? []
-              const completed = items.filter((item) => item.is_done).length
-              const total = items.length
-              const progress = total ? Math.round((completed / total) * 100) : 0
-
-              return (
-                <article key={activity.id} className={`activity-card status-${activity.status}`}>
-                  <header className="card-header">
-                    <div>
-                      <div className="card-badges">
-                        <span className={`chip status-chip status-${activity.status}`}>
-                          {statusLabels[activity.status]}
-                        </span>
-                        {activity.category ? (
-                          <span className="chip category-chip">{activity.category}</span>
-                        ) : null}
-                      </div>
-                      <h3>{activity.title}</h3>
-                    </div>
-                    <div className="card-actions">
-                      {activity.status === 'done' ? (
-                        <button type="button" className="ghost" onClick={() => handleQuickStatus(activity, 'todo')}>
-                          Reabrir
-                        </button>
-                      ) : (
-                        <button type="button" onClick={() => handleQuickStatus(activity, 'done')}>
-                          Concluir
-                        </button>
-                      )}
-                      <button type="button" className="ghost" onClick={() => openEdit(activity)}>
-                        Editar
-                      </button>
-                      <button type="button" className="ghost danger" onClick={() => handleDelete(activity.id)}>
-                        Excluir
-                      </button>
-                    </div>
-                  </header>
-
-                  <div className="card-body">
-                    {activity.description ? <p>{activity.description}</p> : null}
-                    <div className="meta-grid">
-                      <div>
-                        <span className="meta-label">Data</span>
-                        <span>{formatDate(activity.due_date)}</span>
-                      </div>
-                      <div>
-                        <span className="meta-label">Horario</span>
-                        <span>{formatTime(activity.due_time)}</span>
-                      </div>
-                      <div>
-                        <span className="meta-label">Duracao</span>
-                        <span>{activity.duration_minutes ? `${activity.duration_minutes} min` : 'Sem duracao'}</span>
-                      </div>
-                      <div>
-                        <span className="meta-label">Recorrencia</span>
-                        <span>
-                          {activity.recurrence ? recurrenceLabels[activity.recurrence] : 'Sem recorrencia'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="checklist">
-                      <div className="checklist-header">
-                        <strong>Checklist</strong>
-                        <span className="muted">
-                          {completed}/{total} passos concluidos
-                        </span>
-                      </div>
-                      {items.map((item) => (
-                        <label key={item.id} className="checkbox">
-                          <input
-                            type="checkbox"
-                            checked={item.is_done}
-                            onChange={() => handleToggleChecklist(activity.id, item)}
-                          />
-                          <span>{item.title}</span>
-                        </label>
-                      ))}
-                      <form
-                        className="checklist-form"
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          handleAddChecklistItem(activity.id)
-                        }}
-                      >
-                        <input
-                          type="text"
-                          value={checklistDrafts[activity.id] ?? ''}
-                          onChange={(event) =>
-                            setChecklistDrafts((current) => ({
-                              ...current,
-                              [activity.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="Adicionar subtarefa"
-                        />
-                        <button type="submit" className="ghost">
-                          Adicionar
-                        </button>
-                      </form>
-                      {total ? (
-                        <div className="progress">
-                          <div className="progress-bar" style={{ width: `${progress}%` }} />
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="history-line">
-                      Criada em {new Date(activity.created_at).toLocaleDateString('pt-BR')}
-                      {activity.completed_at
-                        ? ` • Concluida em ${new Date(activity.completed_at).toLocaleDateString('pt-BR')}`
-                        : ''}
-                      {activity.reopened_at
-                        ? ` • Reaberta em ${new Date(activity.reopened_at).toLocaleDateString('pt-BR')}`
-                        : ''}
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </section>
+        <DashboardHero
+          todayPending={todayPending}
+          todayDone={todayDone}
+          streak={streak}
+          medals={medals}
+          onCreate={openCreate}
+        />
+        <AgendaPanel
+          view={view}
+          filters={filters}
+          categoryOptions={categoryOptions}
+          statusMessage={status}
+          liveMessage={liveMessage}
+          loading={loading}
+          activities={visibleActivities}
+          checklists={checklists}
+          checklistDrafts={checklistDrafts}
+          onViewChange={setView}
+          onSearchChange={(value) => setFilters((current) => ({ ...current, search: value }))}
+          onStatusChange={(value) => setFilters((current) => ({ ...current, status: value }))}
+          onCategoryChange={(value) => setFilters((current) => ({ ...current, category: value }))}
+          onQuickStatus={handleQuickStatus}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onToggleChecklist={handleToggleChecklist}
+          onAddChecklistItem={handleAddChecklistItem}
+          onChecklistDraftChange={handleChecklistDraftChange}
+        />
       </main>
-
-      {formOpen ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card modal-card--wide">
-            <header className="modal-header">
-              <h2>{formMode === 'create' ? 'Nova atividade' : 'Editar atividade'}</h2>
-            </header>
-            <form className="form-grid" onSubmit={handleFormSubmit}>
-              <label>
-                Titulo
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  required
-                />
-              </label>
-              <label>
-                Descricao
-                <textarea
-                  value={form.description}
-                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                  rows={3}
-                />
-              </label>
-              <div className="form-columns">
-                <label>
-                  Status
-                  <select
-                    value={form.status}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, status: event.target.value as Activity['status'] }))
-                    }
-                  >
-                    <option value="todo">A fazer</option>
-                    <option value="doing">Em andamento</option>
-                    <option value="paused">Pausada</option>
-                    <option value="done">Concluida</option>
-                  </select>
-                </label>
-                <label>
-                  Categoria
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
-                    placeholder="Ex: Estudos"
-                  />
-                </label>
-              </div>
-              <div className="form-columns">
-                <label>
-                  Data
-                  <input
-                    type="date"
-                    value={form.due_date}
-                    onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))}
-                  />
-                </label>
-                <label>
-                  Horario
-                  <input
-                    type="time"
-                    value={form.due_time}
-                    onChange={(event) => setForm((current) => ({ ...current, due_time: event.target.value }))}
-                  />
-                </label>
-              </div>
-              <div className="form-columns">
-                <label>
-                  Duracao (min)
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.duration_minutes}
-                    onChange={(event) => setForm((current) => ({ ...current, duration_minutes: event.target.value }))}
-                  />
-                </label>
-                <label>
-                  Recorrencia
-                  <select
-                    value={form.recurrence}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        recurrence: event.target.value as ActivityFormState['recurrence'],
-                      }))
-                    }
-                  >
-                    <option value="none">Sem recorrencia</option>
-                    <option value="daily">Diaria</option>
-                    <option value="weekly">Semanal</option>
-                  </select>
-                </label>
-              </div>
-              <div className="modal-actions modal-actions--split">
-                <button type="button" className="ghost" onClick={closeForm}>
-                  Cancelar
-                </button>
-                <button type="submit" disabled={saving}>
-                  {saving ? 'Salvando...' : formMode === 'create' ? 'Criar atividade' : 'Salvar alteracoes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      {toasts.length ? (
-        <div className="toast-stack" aria-live="polite">
-          {toasts.map((toast) => (
-            <div key={toast.id} className={`toast toast--${toast.tone}`}>
-              {toast.message}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <ActivityModal
+        open={formOpen}
+        mode={formMode}
+        form={form}
+        saving={saving}
+        titleInputRef={titleInputRef}
+        onClose={closeForm}
+        onSubmit={handleFormSubmit}
+        onChange={handleFormChange}
+      />
+      <ToastStack toasts={toasts} />
     </div>
   )
 }

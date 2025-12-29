@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -12,6 +12,7 @@ export const Register = () => {
   const [statusVisible, setStatusVisible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showVerificationNotice, setShowVerificationNotice] = useState(false)
+  const noticeButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     if (!status) {
@@ -29,6 +30,26 @@ export const Register = () => {
       window.clearTimeout(clearTimer)
     }
   }, [status])
+
+  useEffect(() => {
+    if (!showVerificationNotice) return
+    const focusTimer = window.setTimeout(() => {
+      noticeButtonRef.current?.focus()
+    }, 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [showVerificationNotice])
+
+  useEffect(() => {
+    if (!showVerificationNotice) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      setShowVerificationNotice(false)
+      navigate('/login', { replace: true })
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [navigate, showVerificationNotice])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -90,14 +111,14 @@ export const Register = () => {
         </footer>
       </section>
       {showVerificationNotice ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="verification-title" aria-describedby="verification-description">
           <div className="modal-card">
-            <h2>Confirmacao de email</h2>
-            <p className="muted">
+            <h2 id="verification-title">Confirmacao de email</h2>
+            <p className="muted" id="verification-description">
               Enviamos um email para voce confirmar sua conta. Verifique sua caixa de entrada.
             </p>
             <div className="modal-actions">
-              <button type="button"
+              <button type="button" ref={noticeButtonRef}
                 onClick={() => {
                   setShowVerificationNotice(false)
                   navigate('/login', { replace: true })

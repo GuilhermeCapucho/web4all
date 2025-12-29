@@ -25,8 +25,10 @@ const applyAccessibilityPrefs = (profile: Profile | null) => {
   const root = document.documentElement
   const scale = profile?.font_scale ? profile.font_scale / 100 : 1
   const contrast = profile?.high_contrast ? 'high' : 'normal'
+  const motion = profile?.reduce_motion ? 'reduced' : 'normal'
   root.style.setProperty('--font-scale', String(scale))
   root.dataset.contrast = contrast
+  root.dataset.motion = motion
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -37,7 +39,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const user = session?.user ?? null
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase.from('profiles').select('id, full_name, font_scale, high_contrast').eq('id', userId).single()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion')
+      .eq('id', userId)
+      .single()
 
     if (error) {
       return
@@ -62,9 +68,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           full_name: updates.full_name ?? profile?.full_name ?? null,
           font_scale: updates.font_scale ?? profile?.font_scale ?? 100,
           high_contrast: updates.high_contrast ?? profile?.high_contrast ?? false,
+          reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion')
         .single()
 
       if (error) {

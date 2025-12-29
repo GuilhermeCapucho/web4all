@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { TopNav } from '../components/TopNav'
 
@@ -7,7 +7,9 @@ export const Profile = () => {
   const [fullName, setFullName] = useState('')
   const [fontScale, setFontScale] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
+  const [reduceMotion, setReduceMotion] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [statusVisible, setStatusVisible] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -15,7 +17,41 @@ export const Profile = () => {
     setFullName(profile.full_name ?? '')
     setFontScale(profile.font_scale ?? 100)
     setHighContrast(profile.high_contrast ?? false)
+    setReduceMotion(profile.reduce_motion ?? false)
   }, [profile])
+
+  useEffect(() => {
+    if (!status) {
+      return
+    }
+    setStatusVisible(true)
+    const hideTimer = window.setTimeout(() => {
+      setStatusVisible(false)
+    }, 5000)
+    const clearTimer = window.setTimeout(() => {
+      setStatus(null)
+    }, 5300)
+    return () => {
+      window.clearTimeout(hideTimer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [status])
+
+  const fontSteps = useMemo(() => [100, 110, 120, 130], [])
+
+  const adjustFontScale = (direction: -1 | 1) => {
+    setFontScale((current) => {
+      const index = fontSteps.findIndex((value) => value === current)
+      const safeIndex = index === -1 ? 0 : index
+      const nextIndex = Math.min(Math.max(safeIndex + direction, 0), fontSteps.length - 1)
+      return fontSteps[nextIndex]
+    })
+  }
+
+  const fontLabel = useMemo(() => {
+    const scaleLabel = fontScale === 100 ? 'Normal' : fontScale === 110 ? 'Grande' : fontScale === 120 ? 'Muito grande' : 'Extra grande'
+    return `${scaleLabel} (${fontScale}%)`
+  }, [fontScale])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -25,6 +61,7 @@ export const Profile = () => {
       full_name: fullName.trim() || null,
       font_scale: fontScale,
       high_contrast: highContrast,
+      reduce_motion: reduceMotion,
     })
     setSaving(false)
     setStatus(error ?? 'Preferencias atualizadas com sucesso.')
@@ -52,24 +89,36 @@ export const Profile = () => {
               Nome completo
               <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)}/>
             </label>
-            <label>
-              Tamanho da fonte
-              <select value={fontScale} onChange={(event) => setFontScale(Number(event.target.value))}>
-                <option value={100}>Normal (100%)</option>
-                <option value={110}>Grande (110%)</option>
-                <option value={120}>Muito grande (120%)</option>
-                <option value={130}>Extra grande (130%)</option>
-              </select>
-            </label>
-            <label className="checkbox">
-              <input type="checkbox" checked={highContrast} onChange={(event) => setHighContrast(event.target.checked)}/>
-              Ativar alto contraste
-            </label>
+            <fieldset className="accessibility-group">
+              <legend>Preferencias de acessibilidade</legend>
+              <div className="font-control">
+                <span id="font-scale-label">Tamanho da fonte</span>
+                <div className="font-buttons" role="group" aria-labelledby="font-scale-label">
+                  <button type="button" className="ghost" onClick={() => adjustFontScale(-1)} disabled={fontScale <= fontSteps[0]} aria-label="Diminuir tamanho da fonte">
+                    A-
+                  </button>
+                  <span className="font-value" aria-live="polite" aria-atomic="true">
+                    {fontLabel}
+                  </span>
+                  <button type="button" className="ghost" onClick={() => adjustFontScale(1)} disabled={fontScale >= fontSteps[fontSteps.length - 1]} aria-label="Aumentar tamanho da fonte">
+                    A+
+                  </button>
+                </div>
+              </div>
+              <label className="checkbox">
+                <input type="checkbox" checked={highContrast} onChange={(event) => setHighContrast(event.target.checked)}/>
+                Ativar alto contraste
+              </label>
+              <label className="checkbox">
+                <input type="checkbox" checked={reduceMotion} onChange={(event) => setReduceMotion(event.target.checked)}/>
+                Reduzir animacoes
+              </label>
+            </fieldset>
             <button type="submit" disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar preferencias'}
             </button>
             {status ? (
-              <p className={`status ${status.includes('sucesso') ? 'success' : 'error'}`}>
+              <p className={`status ${status.includes('sucesso') ? 'success' : 'error'}${statusVisible ? '' : ' is-hidden'}`} role={status.includes('sucesso') ? 'status' : 'alert'} aria-live="polite" aria-atomic="true">
                 {status}
               </p>
             ) : null}

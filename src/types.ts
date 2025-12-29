@@ -3,6 +3,7 @@ export type Profile = {
   full_name: string | null
   font_scale: number
   high_contrast: boolean
+  reduce_motion: boolean
 }
 
 export type Activity = {
