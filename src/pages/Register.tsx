@@ -55,7 +55,7 @@ export const Register = () => {
     event.preventDefault()
     setLoading(true)
     setStatus(null)
-    const error = await signUp(email, password)
+    const error = await signUp(email, password, fullName)
     if (error) {
       setStatus(error)
       setLoading(false)
@@ -72,9 +72,6 @@ export const Register = () => {
 
   return (
     <main className="auth-layout">
-      <a className="skip-link" href="#register-form">
-        Pular para o formulario
-      </a>
       <section className="auth-card">
         <header>
           <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
@@ -86,7 +83,7 @@ export const Register = () => {
         <form id="register-form" onSubmit={handleSubmit} className="form-grid">
           <label>
             Nome completo
-            <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name"/>
+            <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} required autoComplete="name"/>
           </label>
           <label>
             Email

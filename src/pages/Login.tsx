@@ -43,9 +43,6 @@ export const Login = () => {
 
   return (
     <main className="auth-layout">
-      <a className="skip-link" href="#login-form">
-        Pular para o formulario
-      </a>
       <section className="auth-card">
         <header>
           <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>

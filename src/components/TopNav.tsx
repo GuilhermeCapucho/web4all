@@ -2,7 +2,8 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export const TopNav = () => {
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
+  const isTeacher = profile?.role === 'teacher'
 
   const handleSignOut = async () => {
     await signOut()
@@ -17,6 +18,7 @@ export const TopNav = () => {
       </div>
       <nav className="nav-links" aria-label="Navegacao principal">
         <NavLink to="/app">Atividades</NavLink>
+        {isTeacher ? <NavLink to="/students">Alunos</NavLink> : null}
         <NavLink to="/profile">Perfil</NavLink>
       </nav>
       <div className="nav-actions">

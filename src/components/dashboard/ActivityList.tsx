@@ -6,6 +6,8 @@ type ActivityListProps = {
   loading: boolean
   checklists: Record<string, ChecklistItem[]>
   checklistDrafts: Record<string, string>
+  isTeacher: boolean
+  assignedLabels: Record<string, string>
   onQuickStatus: (activity: Activity, nextStatus: Activity['status']) => void
   onEdit: (activity: Activity) => void
   onDelete: (activityId: string) => void
@@ -14,7 +16,7 @@ type ActivityListProps = {
   onChecklistDraftChange: (activityId: string, value: string) => void
 }
 
-export const ActivityList = ({activities, loading, checklists, checklistDrafts, onQuickStatus, onEdit, onDelete, onToggleChecklist, onAddChecklistItem, onChecklistDraftChange}: ActivityListProps) => (
+export const ActivityList = ({activities, loading, checklists, checklistDrafts, isTeacher, assignedLabels, onQuickStatus, onEdit, onDelete, onToggleChecklist, onAddChecklistItem, onChecklistDraftChange}: ActivityListProps) => (
   <div className="activity-list" aria-live="polite">
     {loading ? (
       <div className="agenda-loading" role="status" aria-live="polite">
@@ -30,6 +32,8 @@ export const ActivityList = ({activities, loading, checklists, checklistDrafts, 
           activity={activity}
           items={checklists[activity.id] ?? []}
           draft={checklistDrafts[activity.id] ?? ''}
+          assignedLabel={activity.assigned_to ? (assignedLabels[activity.assigned_to] ?? 'Aluno sem nome') : undefined}
+          isTeacher={isTeacher}
           onQuickStatus={onQuickStatus}
           onEdit={onEdit}
           onDelete={onDelete}

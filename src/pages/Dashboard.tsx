@@ -24,10 +24,11 @@ const emptyForm: ActivityFormState = {
   due_time: '',
   duration_minutes: '',
   recurrence: 'none',
+  assigned_to: '',
 }
 
 export const Dashboard = () => {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({})
   const [loading, setLoading] = useState(true)
@@ -42,9 +43,14 @@ export const Dashboard = () => {
   const [filters, setFilters] = useState({ search: '', status: 'all', category: 'all' })
   const [toasts, setToasts] = useState<Toast[]>([])
   const [checklistDrafts, setChecklistDrafts] = useState<Record<string, string>>({})
+  const [students, setStudents] = useState<Array<{ id: string; label: string }>>([])
+  const [assignedLabels, setAssignedLabels] = useState<Record<string, string>>({})
   const notifiedRef = useRef<Set<string>>(new Set())
   const titleInputRef = useRef<HTMLInputElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const isTeacher = profile?.role === 'teacher'
+  const roleLabel =
+    profile?.role === 'teacher' ? 'Professor' : profile?.role === 'caregiver' ? 'Familiar' : 'Aluno'
 
   const addToast = useCallback((message: string, tone: Toast['tone'] = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
@@ -104,9 +110,8 @@ export const Dashboard = () => {
     const { data, error } = await supabase
       .from('activities')
       .select(
-        'id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
+        'id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
       )
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -117,6 +122,24 @@ export const Dashboard = () => {
 
     const activitiesData = data ?? []
     setActivities(activitiesData)
+
+    const assignedIds = Array.from(
+      new Set(activitiesData.map((activity) => activity.assigned_to).filter((id): id is string => Boolean(id))),
+    )
+    if (assignedIds.length > 0) {
+      const { data: assignedProfiles, error: assignedError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', assignedIds)
+
+      if (!assignedError) {
+        const nextLabels: Record<string, string> = {}
+        ;(assignedProfiles ?? []).forEach((student) => {
+          nextLabels[student.id] = student.full_name?.trim() || 'Aluno sem nome'
+        })
+        setAssignedLabels((current) => ({ ...current, ...nextLabels }))
+      }
+    }
 
     if (activitiesData.length === 0) {
       setChecklists({})
@@ -148,9 +171,66 @@ export const Dashboard = () => {
     setLoading(false)
   }, [user])
 
+  const fetchStudents = useCallback(async () => {
+    if (!user || !isTeacher) {
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+    const { data: links, error: linksError } = await supabase
+      .from('teacher_students')
+      .select('student_id')
+      .eq('teacher_id', user.id)
+
+    if (linksError) {
+      setStatus(linksError.message)
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const studentIds = (links ?? []).map((link) => link.student_id)
+    if (studentIds.length === 0) {
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', studentIds)
+
+    if (profilesError) {
+      setStatus(profilesError.message)
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const labels: Record<string, string> = {}
+    const options = (profilesData ?? []).map((student) => {
+      const label = student.full_name?.trim() || 'Aluno sem nome'
+      labels[student.id] = label
+      return { id: student.id, label }
+    })
+
+    setStudents(options)
+    setAssignedLabels(labels)
+  }, [isTeacher, user])
+
   useEffect(() => {
     fetchActivities()
   }, [fetchActivities])
+
+  useEffect(() => {
+    fetchStudents()
+  }, [fetchStudents])
+
+  useEffect(() => {
+    if (!isTeacher || formMode !== 'create' || form.assigned_to || students.length === 0) return
+    setForm((current) => ({ ...current, assigned_to: students[0].id }))
+  }, [form.assigned_to, formMode, isTeacher, students])
 
   useEffect(() => {
     if (!formOpen) {
@@ -196,6 +276,10 @@ export const Dashboard = () => {
   }, [activities, addToast])
 
   const openCreate = () => {
+    if (!isTeacher) {
+      setStatus('Apenas professores podem criar atividades.')
+      return
+    }
     previousFocusRef.current = document.activeElement as HTMLElement | null
     setFormMode('create')
     setEditingId(null)
@@ -216,6 +300,7 @@ export const Dashboard = () => {
       due_time: activity.due_time ?? '',
       duration_minutes: activity.duration_minutes ? String(activity.duration_minutes) : '',
       recurrence: activity.recurrence ?? 'none',
+      assigned_to: activity.assigned_to ?? '',
     })
     setFormOpen(true)
   }
@@ -223,6 +308,10 @@ export const Dashboard = () => {
   const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!user) return
+    if (!isTeacher) {
+      setStatus('Apenas professores podem criar ou editar atividades.')
+      return
+    }
     setSaving(true)
     setStatus(null)
 
@@ -237,6 +326,12 @@ export const Dashboard = () => {
       recurrence: form.recurrence === 'none' ? null : form.recurrence,
     }
 
+    if (!form.assigned_to) {
+      setSaving(false)
+      setStatus('Selecione um aluno para a atividade.')
+      return
+    }
+
     const now = new Date().toISOString()
 
     if (formMode === 'create') {
@@ -245,9 +340,11 @@ export const Dashboard = () => {
         .insert({
           ...payload,
           user_id: user.id,
+          created_by: user.id,
+          assigned_to: form.assigned_to,
           completed_at: form.status === 'done' ? now : null,
         })
-        .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
+        .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
         .single()
 
       setSaving(false)
@@ -276,7 +373,12 @@ export const Dashboard = () => {
     const original = activities.find((activity) => activity.id === editingId)
     const fromStatus = original?.status
     const completedAt = payload.status === 'done' ? (fromStatus === 'done' ? original?.completed_at ?? now : now) : null
-    const updates = { ...payload, completed_at: completedAt, reopened_at: null as string | null }
+    const updates = {
+      ...payload,
+      assigned_to: form.assigned_to,
+      completed_at: completedAt,
+      reopened_at: null as string | null,
+    }
 
     if (fromStatus === 'done' && payload.status !== 'done') {
       updates.reopened_at = now
@@ -286,8 +388,7 @@ export const Dashboard = () => {
       .from('activities')
       .update(updates)
       .eq('id', editingId)
-      .eq('user_id', user.id)
-      .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
+      .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
       .single()
 
     setSaving(false)
@@ -308,7 +409,7 @@ export const Dashboard = () => {
   const handleDelete = async (activityId: string) => {
     if (!user) return
     setStatus(null)
-    const { error } = await supabase.from('activities').delete().eq('id', activityId).eq('user_id', user.id)
+    const { error } = await supabase.from('activities').delete().eq('id', activityId)
 
     if (error) {
       setStatus(error.message)
@@ -337,8 +438,7 @@ export const Dashboard = () => {
       .from('activities')
       .update(updates)
       .eq('id', activity.id)
-      .eq('user_id', user.id)
-      .select('id, user_id, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
+      .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
       .single()
 
     if (error) {
@@ -351,6 +451,8 @@ export const Dashboard = () => {
 
     if (nextStatus === 'done') {
       addToast('Parabens, concluida!', 'success')
+    } else if (nextStatus === 'paused') {
+      addToast('Pedido de ajuda enviado.', 'warning')
     } else {
       addToast('Atividade reaberta.', 'info')
     }
@@ -421,13 +523,26 @@ export const Dashboard = () => {
 
     return sortedActivities.filter((activity) => {
       if (view === 'today' && activity.due_date !== todayString) {
-        return false
+        if (!activity.due_date) {
+          const createdDate = activity.created_at.slice(0, 10)
+          if (createdDate !== todayString) {
+            return false
+          }
+        } else {
+          return false
+        }
       }
       if (view === 'week') {
-        if (!activity.due_date) return false
-        const due = new Date(`${activity.due_date}T00:00:00`)
-        if (due < new Date(`${todayString}T00:00:00`) || due > weekEnd) {
-          return false
+        if (!activity.due_date) {
+          const createdDate = new Date(`${activity.created_at.slice(0, 10)}T00:00:00`)
+          if (createdDate < new Date(`${todayString}T00:00:00`) || createdDate > weekEnd) {
+            return false
+          }
+        } else {
+          const due = new Date(`${activity.due_date}T00:00:00`)
+          if (due < new Date(`${todayString}T00:00:00`) || due > weekEnd) {
+            return false
+          }
         }
       }
       if (filters.status !== 'all' && activity.status !== filters.status) {
@@ -456,6 +571,9 @@ export const Dashboard = () => {
           streak={streak}
           medals={medals}
           onCreate={openCreate}
+          canCreate={isTeacher}
+          roleLabel={roleLabel}
+          showMetrics={!isTeacher}
         />
         <AgendaPanel
           view={view}
@@ -467,6 +585,8 @@ export const Dashboard = () => {
           activities={visibleActivities}
           checklists={checklists}
           checklistDrafts={checklistDrafts}
+          isTeacher={isTeacher}
+          assignedLabels={assignedLabels}
           onViewChange={setView}
           onSearchChange={(value) => setFilters((current) => ({ ...current, search: value }))}
           onStatusChange={(value) => setFilters((current) => ({ ...current, status: value }))}
@@ -484,6 +604,8 @@ export const Dashboard = () => {
         mode={formMode}
         form={form}
         saving={saving}
+        isTeacher={isTeacher}
+        students={students}
         titleInputRef={titleInputRef}
         onClose={closeForm}
         onSubmit={handleFormSubmit}

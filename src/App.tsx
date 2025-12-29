@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
+import { TeacherStudents } from './pages/TeacherStudents'
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth()
@@ -42,6 +43,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <ProtectedRoute>
+                <TeacherStudents />
               </ProtectedRoute>
             }
           />

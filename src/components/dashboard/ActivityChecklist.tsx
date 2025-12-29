@@ -6,12 +6,13 @@ type ActivityChecklistProps = {
   items: ChecklistItem[]
   draft: string
   inputId: string
+  canAdd: boolean
   onToggle: (activityId: string, item: ChecklistItem) => void
   onAdd: (activityId: string) => void
   onDraftChange: (activityId: string, value: string) => void
 }
 
-export const ActivityChecklist = ({activityId, activityTitle, items, draft, inputId, onToggle, onAdd, onDraftChange}: ActivityChecklistProps) => {
+export const ActivityChecklist = ({activityId, activityTitle, items, draft, inputId, canAdd, onToggle, onAdd, onDraftChange}: ActivityChecklistProps) => {
   const completed = items.filter((item) => item.is_done).length
   const total = items.length
   const progress = total ? Math.round((completed / total) * 100) : 0
@@ -33,13 +34,15 @@ export const ActivityChecklist = ({activityId, activityTitle, items, draft, inpu
       <form className="checklist-form"
         onSubmit={(event) => {
           event.preventDefault()
-          onAdd(activityId)
+          if (canAdd) {
+            onAdd(activityId)
+          }
         }}>
         <label className="sr-only" htmlFor={inputId}>
           Adicionar subtarefa
         </label>
-        <input id={inputId} type="text" value={draft} onChange={(event) => onDraftChange(activityId, event.target.value)} placeholder="Adicionar subtarefa"/>
-        <button type="submit" className="ghost" aria-label={`Adicionar subtarefa em ${activityTitle}`}>
+        <input id={inputId} type="text" value={draft} onChange={(event) => onDraftChange(activityId, event.target.value)} placeholder="Adicionar subtarefa" disabled={!canAdd}/>
+        <button type="submit" className="ghost" aria-label={`Adicionar subtarefa em ${activityTitle}`} disabled={!canAdd}>
           Adicionar
         </button>
       </form>

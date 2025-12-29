@@ -9,7 +9,7 @@ type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<string | null>
-  signUp: (email: string, password: string) => Promise<string | null>
+  signUp: (email: string, password: string, fullName?: string) => Promise<string | null>
   signOut: () => Promise<string | null>
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<string | null>
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, font_scale, high_contrast, reduce_motion')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion, role')
       .eq('id', userId)
       .single()
 
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast, reduce_motion')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion, role')
         .single()
 
       if (error) {
@@ -88,8 +88,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return error ? error.message : null
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+    const cleanName = fullName?.trim()
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: cleanName ? { data: { full_name: cleanName } } : undefined,
+    })
     return error ? error.message : null
   }, [])
 

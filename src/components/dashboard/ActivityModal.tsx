@@ -10,6 +10,12 @@ export type ActivityFormState = {
   due_time: string
   duration_minutes: string
   recurrence: 'none' | NonNullable<Activity['recurrence']>
+  assigned_to: string
+}
+
+type StudentOption = {
+  id: string
+  label: string
 }
 
 type ActivityModalProps = {
@@ -17,14 +23,18 @@ type ActivityModalProps = {
   mode: 'create' | 'edit'
   form: ActivityFormState
   saving: boolean
+  isTeacher: boolean
+  students: StudentOption[]
   titleInputRef: RefObject<HTMLInputElement | null>
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onChange: (next: Partial<ActivityFormState>) => void
 }
 
-export const ActivityModal = ({open, mode, form, saving, titleInputRef, onClose, onSubmit, onChange}: ActivityModalProps) => {
+export const ActivityModal = ({open, mode, form, saving, isTeacher, students, titleInputRef, onClose, onSubmit, onChange}: ActivityModalProps) => {
   if (!open) return null
+
+  const hasStudents = students.length > 0
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
@@ -33,6 +43,21 @@ export const ActivityModal = ({open, mode, form, saving, titleInputRef, onClose,
           <h2 id="activity-modal-title">{mode === 'create' ? 'Nova atividade' : 'Editar atividade'}</h2>
         </header>
         <form className="form-grid" onSubmit={onSubmit}>
+          {isTeacher ? (
+            <label>
+              Aluno
+              <select value={form.assigned_to} onChange={(event) => onChange({ assigned_to: event.target.value })} required disabled={!hasStudents}>
+                <option value="" disabled>
+                  {hasStudents ? 'Selecione um aluno' : 'Nenhum aluno vinculado'}
+                </option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label>
             Titulo
             <input type="text" ref={titleInputRef} value={form.title} onChange={(event) => onChange({ title: event.target.value })} required/>

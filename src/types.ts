@@ -4,11 +4,14 @@ export type Profile = {
   font_scale: number
   high_contrast: boolean
   reduce_motion: boolean
+  role: 'teacher' | 'student' | 'caregiver'
 }
 
 export type Activity = {
   id: string
   user_id: string
+  created_by: string | null
+  assigned_to: string | null
   title: string
   description: string | null
   status: 'todo' | 'doing' | 'paused' | 'done'
