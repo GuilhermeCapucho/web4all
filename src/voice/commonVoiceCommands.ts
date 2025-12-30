@@ -1,12 +1,10 @@
 import type { NavigateFunction } from 'react-router-dom'
-import type { Activity, Profile } from '../types'
+import type { Activity } from '../types'
 import type { VoiceCommand, VoiceNotifyTone } from './voiceCommands'
 
 type CommonVoiceCommandDeps = {
   navigate: NavigateFunction
   signOut: () => Promise<string | null>
-  updateProfile: (updates: Partial<Profile>) => Promise<string | null>
-  profile: Profile | null
   activityVoice?: {
     findActivityByTitle: (query: string) => Activity | null
     onStatusChange: (activity: Activity, status: Activity['status']) => Promise<void>
@@ -17,8 +15,6 @@ type CommonVoiceCommandDeps = {
 export const buildCommonVoiceCommands = ({
   navigate,
   signOut,
-  updateProfile,
-  profile,
   activityVoice,
   notify,
 }: CommonVoiceCommandDeps): VoiceCommand[] => [
@@ -85,71 +81,6 @@ export const buildCommonVoiceCommands = ({
       navigate('/login', { replace: true })
     },
   },
-  {
-    id: 'high-contrast',
-    match: (normalized: string) =>
-      normalized.includes('ligar modo leitura') ||
-      normalized.includes('ligar leitura') ||
-      normalized.includes('ligar ler') ||
-      normalized.includes('ligar modo ler') ||
-      normalized.includes('ativar modo ler') ||
-      normalized.includes('ativar modo leitura'),
-    run: async () => {
-      const error = await updateProfile({ high_contrast: true })
-      notify?.(error ?? 'Alto contraste ativado.', error ? 'warning' : 'success')
-    },
-  },
-  {
-    id: 'high-contrast-off',
-    match: (normalized: string) =>
-      normalized.includes('tirar modo leitura') ||
-      normalized.includes('tirar modo ler') ||
-      normalized.includes('tirar ler') ||
-      normalized.includes('desativar leitura') ||
-      normalized.includes('desativar ler') ||
-      normalized.includes('desativar modo ler') ||
-      normalized.includes('desligar leitura') ||
-      normalized.includes('desligar ler') ||
-      normalized.includes('desligar modo ler'),
-    run: async () => {
-      const error = await updateProfile({ high_contrast: false })
-      notify?.(error ?? 'Alto contraste desativado.', error ? 'warning' : 'success')
-    },
-  },
-  {
-    id: 'reduce-motion',
-    match: (normalized: string) => 
-      normalized.includes('reduzir animacoes') ||
-      normalized.includes('reduzir animacao') ||
-      normalized.includes('tirar animacoes') ||
-      normalized.includes('tirar animacao') ||
-      normalized.includes('diminuir animacoes') ||
-      normalized.includes('diminuir animacao') ||
-      normalized.includes('desligar animacoes') ||
-      normalized.includes('desligar animacao') ||
-      normalized.includes('sem animacoes') ||
-      normalized.includes('sem animacao'),
-    run: async () => {
-      const error = await updateProfile({ reduce_motion: true })
-      notify?.(error ?? 'Animacoes reduzidas.', error ? 'warning' : 'success')
-    },
-  },
-  {
-    id: 'reduce-motion-off',
-    match: (normalized: string) =>
-      normalized.includes('ligar animacoes') ||
-      normalized.includes('ligar animacao') ||
-      normalized.includes('ativar animacoes') ||
-      normalized.includes('ativar animacao') ||
-      normalized.includes('restaurar animacoes') ||
-      normalized.includes('restaurar animacao') ||
-      normalized.includes('voltar animacoes') ||
-      normalized.includes('voltar animacao'),
-    run: async () => {
-      const error = await updateProfile({ reduce_motion: false })
-      notify?.(error ?? 'Animacoes restauradas.', error ? 'warning' : 'success')
-    },
-  },
   ...(activityVoice
     ? [
         {
@@ -200,30 +131,4 @@ export const buildCommonVoiceCommands = ({
         },
       ]
     : []),
-  {
-    id: 'font-size-up',
-    match: (normalized: string) =>
-      normalized.includes('aumentar o tamanho da fonte') || normalized.includes('aumentar tamanho da fonte'),
-    run: async () => {
-      const steps = [100, 110, 120, 130]
-      const current = profile?.font_scale ?? 100
-      const index = Math.max(steps.indexOf(current), 0)
-      const nextScale = steps[Math.min(index + 1, steps.length - 1)]
-      const error = await updateProfile({ font_scale: nextScale })
-      notify?.(error ?? `Fonte ajustada para ${nextScale}%.`, error ? 'warning' : 'success')
-    },
-  },
-  {
-    id: 'font-size-down',
-    match: (normalized: string) =>
-      normalized.includes('diminuir o tamanho da fonte') || normalized.includes('diminuir tamanho da fonte'),
-    run: async () => {
-      const steps = [100, 110, 120, 130]
-      const current = profile?.font_scale ?? 100
-      const index = Math.max(steps.indexOf(current), 0)
-      const nextScale = steps[Math.max(index - 1, 0)]
-      const error = await updateProfile({ font_scale: nextScale })
-      notify?.(error ?? `Fonte ajustada para ${nextScale}%.`, error ? 'warning' : 'success')
-    },
-  },
 ]

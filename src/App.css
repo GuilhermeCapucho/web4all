@@ -86,6 +86,15 @@
   justify-content: flex-start;
 }
 
+.font-buttons.font-buttons--stacked {
+  justify-content: flex-start;
+  gap: 0.2rem;
+}
+
+.accessibility-panel .font-value {
+  font-weight: 600;
+}
+
 .font-buttons .ghost {
   border: 1px solid var(--border);
   background: #ffffff;
@@ -697,6 +706,77 @@ label.checkbox {
   display: grid;
   gap: 0.75rem;
   z-index: 50;
+}
+
+.accessibility-widget {
+  position: fixed;
+  right: 0.1rem;
+  top: 40%;
+  transform: translateY(-50%);
+  z-index: 46;
+}
+
+.accessibility-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  padding: 0;
+  border: 2px solid var(--border);
+  background: var(--primary);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 16px 30px rgba(11, 110, 107, 0.18);
+}
+
+.accessibility-toggle:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.accessibility-toggle svg {
+  width: 34px;
+  height: 34px;
+}
+
+.accessibility-panel {
+  position: absolute;
+  right: calc(100% + 0.75rem);
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem;
+  min-width: 220px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.accessibility-widget.is-open .accessibility-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+
+.accessibility-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.accessibility-section {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.accessibility-label {
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
 .voice-fab {

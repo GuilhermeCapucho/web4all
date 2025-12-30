@@ -33,7 +33,7 @@ const emptyForm: ActivityFormState = {
 
 export const Dashboard = () => {
   const navigate = useNavigate()
-  const { user, profile, updateProfile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({})
   const [loading, setLoading] = useState(true)
@@ -627,8 +627,6 @@ export const Dashboard = () => {
   const { handleVoiceCommand } = useDashboardVoiceCommands({
     navigate,
     signOut,
-    updateProfile,
-    profile,
     activities,
     visibleActivities,
     checklists,

@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { TeacherStudents } from './pages/TeacherStudents'
 import { VoiceFab } from './components/VoiceFab'
+import { AccessibilityWidget } from './components/AccessibilityWidget'
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth()
@@ -58,6 +59,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <VoiceFab/>
+        <AccessibilityWidget/>
       </BrowserRouter>
     </AuthProvider>
   )

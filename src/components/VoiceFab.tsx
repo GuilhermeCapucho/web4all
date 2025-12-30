@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 type SpeechRecognitionResultLike = {
@@ -27,7 +26,6 @@ type SpeechRecognition = {
 type SpeechRecognitionConstructor = new () => SpeechRecognition
 
 export const VoiceFab = () => {
-  const location = useLocation()
   const { user } = useAuth()
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -107,10 +105,8 @@ export const VoiceFab = () => {
     }
   }
 
-  const allowedPaths = new Set(['/app', '/profile', '/students'])
-
   useEffect(() => {
-    if (!user || !allowedPaths.has(location.pathname)) return
+    if (!user) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== 'o') return
       const target = event.target as HTMLElement | null
@@ -123,18 +119,12 @@ export const VoiceFab = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [location.pathname, toggleListening, user])
+  }, [toggleListening, user])
 
-  if (!user || !allowedPaths.has(location.pathname)) return null
+  if (!user) return null
 
   return (
-    <button
-      type="button"
-      className={`voice-fab${listening ? ' is-listening' : ''}`}
-      onClick={toggleListening}
-      aria-label={listening ? 'Parar de ouvir' : 'Ouvir comandos de voz'}
-      aria-pressed={listening}
-    >
+    <button type="button" className={`voice-fab${listening ? ' is-listening' : ''}`} onClick={toggleListening} aria-label={listening ? 'Parar de ouvir' : 'Ouvir comandos de voz'} aria-pressed={listening}>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path
           fill="currentColor"

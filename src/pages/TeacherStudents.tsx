@@ -15,7 +15,7 @@ type StudentOption = {
 
 export const TeacherStudents = () => {
   const navigate = useNavigate()
-  const { user, profile, signOut, updateProfile } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const isTeacher = profile?.role === 'teacher'
   const [students, setStudents] = useState<StudentOption[]>([])
   const [linkedIds, setLinkedIds] = useState<string[]>([])
@@ -121,11 +121,9 @@ export const TeacherStudents = () => {
     return buildCommonVoiceCommands({
       navigate,
       signOut,
-      updateProfile,
-      profile,
       notify,
     })
-  }, [navigate, profile, signOut, updateProfile])
+  }, [navigate, signOut])
 
   const handleVoiceCommand = useCallback(async (transcript: string) => {
     const normalized = normalizeVoiceText(transcript)
@@ -169,11 +167,7 @@ export const TeacherStudents = () => {
             >
               <label>
                 Aluno
-                <select
-                  value={selectedId}
-                  onChange={(event) => setSelectedId(event.target.value)}
-                  disabled={loading || availableStudents.length === 0}
-                >
+                <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={loading || availableStudents.length === 0}>
                   {availableStudents.length === 0 ? (
                     <option value="">Nenhum aluno disponivel</option>
                   ) : (
@@ -215,11 +209,7 @@ export const TeacherStudents = () => {
                         </div>
                       </div>
                       <div className="card-actions">
-                        <button
-                          type="button"
-                          className="ghost danger"
-                          onClick={() => handleUnlinkStudent(student.id)}
-                        >
+                        <button type="button" className="ghost danger" onClick={() => handleUnlinkStudent(student.id)}>
                           Remover
                         </button>
                       </div>

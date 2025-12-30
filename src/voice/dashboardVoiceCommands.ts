@@ -1,14 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
-import type { Activity, ChecklistItem, Profile } from '../types'
+import type { Activity, ChecklistItem } from '../types'
+import { isAccessibilityVoiceCommand } from './accessibilityVoiceCommands'
 import { buildCommonVoiceCommands } from './commonVoiceCommands'
 import { normalizeVoiceText, runVoiceCommands, type VoiceCommand, type VoiceNotifyTone } from './voiceCommands'
 
 type DashboardVoiceDeps = {
   navigate: NavigateFunction
   signOut: () => Promise<string | null>
-  updateProfile: (updates: Partial<Profile>) => Promise<string | null>
-  profile: Profile | null
   activities: Activity[]
   visibleActivities: Activity[]
   checklists: Record<string, ChecklistItem[]>
@@ -24,8 +23,6 @@ type DashboardVoiceDeps = {
 export const useDashboardVoiceCommands = ({
   navigate,
   signOut,
-  updateProfile,
-  profile,
   activities,
   visibleActivities,
   checklists,
@@ -93,8 +90,6 @@ export const useDashboardVoiceCommands = ({
     const commonCommands = buildCommonVoiceCommands({
       navigate,
       signOut,
-      updateProfile,
-      profile,
       activityVoice: {
         findActivityByTitle,
         onStatusChange: handleQuickStatus,
@@ -245,13 +240,11 @@ export const useDashboardVoiceCommands = ({
     handleQuickStatus,
     isTeacher,
     navigate,
-    profile,
     resolveActivityForSubtask,
     requestDelete,
     setChecklistItemDone,
     setView,
     signOut,
-    updateProfile,
   ])
 
   const handleVoiceCommand = useCallback(
@@ -260,6 +253,7 @@ export const useDashboardVoiceCommands = ({
       if (!normalized) return
       const handled = await runVoiceCommands(voiceCommands, { transcript, normalized })
       if (!handled) {
+        if (isAccessibilityVoiceCommand(normalized)) return
         addToast('Comando nao reconhecido.', 'warning')
       }
     },
