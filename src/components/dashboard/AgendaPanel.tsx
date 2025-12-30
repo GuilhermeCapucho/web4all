@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Activity, ChecklistItem } from '../../types'
 import { ActivityList } from './ActivityList'
 
@@ -27,7 +27,7 @@ type AgendaPanelProps = {
   onCategoryChange: (value: string) => void
   onQuickStatus: (activity: Activity, nextStatus: Activity['status']) => void
   onEdit: (activity: Activity) => void
-  onDelete: (activityId: string) => void
+  onDelete: (activity: Activity) => void
   onToggleChecklist: (activityId: string, item: ChecklistItem) => void
   onAddChecklistItem: (activityId: string) => void
   onChecklistDraftChange: (activityId: string, value: string) => void
@@ -58,6 +58,26 @@ export const AgendaPanel = ({
 }: AgendaPanelProps) => {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const views: Array<AgendaPanelProps['view']> = ['list', 'today', 'week']
+  const pageSize = 3
+  const [currentPage, setCurrentPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(activities.length / pageSize))
+  const showPagination = activities.length > pageSize
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters.category, filters.search, filters.status, view])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const pagedActivities = useMemo(() => {
+    if (!showPagination) return activities
+    const start = (currentPage - 1) * pageSize
+    return activities.slice(start, start + pageSize)
+  }, [activities, currentPage, showPagination])
 
   const focusTab = useCallback((index: number) => {
     tabRefs.current[index]?.focus()
@@ -148,7 +168,7 @@ export const AgendaPanel = ({
       </div>
 
       <ActivityList
-        activities={activities}
+        activities={pagedActivities}
         loading={loading}
         checklists={checklists}
         checklistDrafts={checklistDrafts}
@@ -161,6 +181,29 @@ export const AgendaPanel = ({
         onAddChecklistItem={onAddChecklistItem}
         onChecklistDraftChange={onChecklistDraftChange}
       />
+      {showPagination ? (
+        <div className="pagination" role="navigation" aria-label="Paginacao da agenda">
+          <button
+            type="button"
+            className="pagination-button"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage === 1}
+          >
+            Anterior
+          </button>
+          <span className="pagination-info">
+            Pagina {currentPage} de {totalPages}
+          </span>
+          <button
+            type="button"
+            className="pagination-button"
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Proxima
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }

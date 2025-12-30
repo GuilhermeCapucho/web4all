@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { TopNav } from '../components/TopNav'
+import { buildCommonVoiceCommands } from '../voice/commonVoiceCommands'
+import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voice/voiceCommands'
+import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 
 export const Profile = () => {
-  const { user, profile, updateProfile } = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, updateProfile, signOut } = useAuth()
   const [fullName, setFullName] = useState('')
   const [fontScale, setFontScale] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [statusTone, setStatusTone] = useState<'success' | 'error'>('success')
   const [statusVisible, setStatusVisible] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -64,8 +70,33 @@ export const Profile = () => {
       reduce_motion: reduceMotion,
     })
     setSaving(false)
+    setStatusTone(error ? 'error' : 'success')
     setStatus(error ?? 'Preferencias atualizadas com sucesso.')
   }
+
+  const voiceCommands = useMemo<VoiceCommand[]>(() => {
+    const notify = (message: string, tone: 'info' | 'success' | 'warning' = 'info') => {
+      if (tone === 'info') return
+      setStatusTone(tone === 'success' ? 'success' : 'error')
+      setStatus(message)
+    }
+
+    return buildCommonVoiceCommands({
+      navigate,
+      signOut,
+      updateProfile,
+      profile,
+      notify,
+    })
+  }, [navigate, profile, signOut, updateProfile])
+
+  const handleVoiceCommand = useCallback(async (transcript: string) => {
+    const normalized = normalizeVoiceText(transcript)
+    if (!normalized) return
+    await runVoiceCommands(voiceCommands, { transcript, normalized })
+  }, [voiceCommands])
+
+  useVoiceCommandListener(handleVoiceCommand)
 
   return (
     <div className="app-shell">
@@ -118,7 +149,7 @@ export const Profile = () => {
               {saving ? 'Salvando...' : 'Salvar preferencias'}
             </button>
             {status ? (
-              <p className={`status ${status.includes('sucesso') ? 'success' : 'error'}${statusVisible ? '' : ' is-hidden'}`} role={status.includes('sucesso') ? 'status' : 'alert'} aria-live="polite" aria-atomic="true">
+              <p className={`status ${statusTone === 'success' ? 'success' : 'error'}${statusVisible ? '' : ' is-hidden'}`} role={statusTone === 'success' ? 'status' : 'alert'} aria-live="polite" aria-atomic="true">
                 {status}
               </p>
             ) : null}

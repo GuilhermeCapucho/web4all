@@ -1,13 +1,17 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import type { Activity, ChecklistItem } from '../types'
 import { TopNav } from '../components/TopNav'
 import { AgendaPanel } from '../components/dashboard/AgendaPanel'
 import { ActivityModal, type ActivityFormState } from '../components/dashboard/ActivityModal'
+import { ConfirmDeleteModal } from '../components/dashboard/ConfirmDeleteModal'
 import { DashboardHero } from '../components/dashboard/DashboardHero'
 import { ToastStack } from '../components/dashboard/ToastStack'
 import { formatTime, getStreak, toDateString } from '../components/dashboard/activityHelpers'
+import { useDashboardVoiceCommands } from '../voice/dashboardVoiceCommands'
+import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 
 type Toast = {
   id: string
@@ -28,7 +32,8 @@ const emptyForm: ActivityFormState = {
 }
 
 export const Dashboard = () => {
-  const { user, profile } = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, updateProfile, signOut } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({})
   const [loading, setLoading] = useState(true)
@@ -39,6 +44,7 @@ export const Dashboard = () => {
   const [form, setForm] = useState<ActivityFormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Activity | null>(null)
   const [view, setView] = useState<'list' | 'today' | 'week'>('list')
   const [filters, setFilters] = useState({ search: '', status: 'all', category: 'all' })
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -275,7 +281,9 @@ export const Dashboard = () => {
     return () => window.clearInterval(interval)
   }, [activities, addToast])
 
-  const openCreate = () => {
+
+
+  const openCreate = (prefill?: Partial<ActivityFormState>) => {
     if (!isTeacher) {
       setStatus('Apenas professores podem criar atividades.')
       return
@@ -283,7 +291,10 @@ export const Dashboard = () => {
     previousFocusRef.current = document.activeElement as HTMLElement | null
     setFormMode('create')
     setEditingId(null)
-    setForm(emptyForm)
+    setForm({
+      ...emptyForm,
+      ...prefill,
+    })
     setFormOpen(true)
   }
 
@@ -425,8 +436,17 @@ export const Dashboard = () => {
     addToast('Atividade removida.', 'info')
   }
 
+  const requestDelete = (activity: Activity) => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
+    setDeleteTarget(activity)
+  }
+
   const handleQuickStatus = async (activity: Activity, nextStatus: Activity['status']) => {
     if (!user) return
+    if (isTeacher && nextStatus === 'done') {
+      setStatus('Apenas alunos podem concluir atividades.')
+      return
+    }
     const now = new Date().toISOString()
     const updates = {
       status: nextStatus,
@@ -456,6 +476,49 @@ export const Dashboard = () => {
     } else {
       addToast('Atividade reaberta.', 'info')
     }
+  }
+
+  const addChecklistItemByTitle = async (activityId: string, title: string) => {
+    if (!user) return
+    const safeTitle = title.trim()
+    if (!safeTitle) return
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .insert({ activity_id: activityId, title: safeTitle })
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: [...(current[activityId] ?? []), data],
+    }))
+  }
+
+  const setChecklistItemDone = async (activityId: string, item: ChecklistItem, isDone: boolean) => {
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .update({
+        is_done: isDone,
+        completed_at: isDone ? new Date().toISOString() : null,
+      })
+      .eq('id', item.id)
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: (current[activityId] ?? []).map((entry) => (entry.id === item.id ? data : entry)),
+    }))
   }
 
   const handleAddChecklistItem = async (activityId: string) => {
@@ -561,6 +624,26 @@ export const Dashboard = () => {
     })
   }, [filters.category, filters.search, filters.status, sortedActivities, todayString, view])
 
+  const { handleVoiceCommand } = useDashboardVoiceCommands({
+    navigate,
+    signOut,
+    updateProfile,
+    profile,
+    activities,
+    visibleActivities,
+    checklists,
+    isTeacher,
+    addToast,
+    setView,
+    handleQuickStatus,
+    requestDelete,
+    addChecklistItemByTitle,
+    setChecklistItemDone,
+  })
+
+  useVoiceCommandListener(handleVoiceCommand)
+
+
   return (
     <div className="app-shell">
       <TopNav />
@@ -570,7 +653,7 @@ export const Dashboard = () => {
           todayDone={todayDone}
           streak={streak}
           medals={medals}
-          onCreate={openCreate}
+          onCreate={() => openCreate()}
           canCreate={isTeacher}
           roleLabel={roleLabel}
           showMetrics={!isTeacher}
@@ -593,7 +676,7 @@ export const Dashboard = () => {
           onCategoryChange={(value) => setFilters((current) => ({ ...current, category: value }))}
           onQuickStatus={handleQuickStatus}
           onEdit={openEdit}
-          onDelete={handleDelete}
+          onDelete={requestDelete}
           onToggleChecklist={handleToggleChecklist}
           onAddChecklistItem={handleAddChecklistItem}
           onChecklistDraftChange={handleChecklistDraftChange}
@@ -610,6 +693,23 @@ export const Dashboard = () => {
         onClose={closeForm}
         onSubmit={handleFormSubmit}
         onChange={handleFormChange}
+      />
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        title="Excluir atividade"
+        description={
+          deleteTarget ? (
+            <>
+              Tem certeza que deseja excluir a atividade <strong>{deleteTarget.title}</strong>?
+            </>
+          ) : null
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return
+          await handleDelete(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
       />
       <ToastStack toasts={toasts} />
     </div>

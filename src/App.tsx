@@ -7,13 +7,14 @@ import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { TeacherStudents } from './pages/TeacherStudents'
+import { VoiceFab } from './components/VoiceFab'
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="status" role="status" aria-live="polite">
-        Carregando...
+      <div className="page-loader" role="status" aria-live="polite" aria-label="Carregando">
+        <div className="spinner" aria-hidden="true" />
       </div>
     )
   }
@@ -56,6 +57,7 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <VoiceFab/>
       </BrowserRouter>
     </AuthProvider>
   )

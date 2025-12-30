@@ -10,7 +10,7 @@ type ActivityListProps = {
   assignedLabels: Record<string, string>
   onQuickStatus: (activity: Activity, nextStatus: Activity['status']) => void
   onEdit: (activity: Activity) => void
-  onDelete: (activityId: string) => void
+  onDelete: (activity: Activity) => void
   onToggleChecklist: (activityId: string, item: ChecklistItem) => void
   onAddChecklistItem: (activityId: string) => void
   onChecklistDraftChange: (activityId: string, value: string) => void

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { TopNav } from '../components/TopNav'
+import { buildCommonVoiceCommands } from '../voice/commonVoiceCommands'
+import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voice/voiceCommands'
+import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 
 type StudentOption = {
   id: string
@@ -10,7 +14,8 @@ type StudentOption = {
 }
 
 export const TeacherStudents = () => {
-  const { user, profile } = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, signOut, updateProfile } = useAuth()
   const isTeacher = profile?.role === 'teacher'
   const [students, setStudents] = useState<StudentOption[]>([])
   const [linkedIds, setLinkedIds] = useState<string[]>([])
@@ -106,6 +111,29 @@ export const TeacherStudents = () => {
 
     await fetchStudents()
   }
+
+  const voiceCommands = useMemo<VoiceCommand[]>(() => {
+    const notify = (message: string, tone: 'info' | 'success' | 'warning' = 'info') => {
+      if (tone !== 'warning') return
+      setStatus(message)
+    }
+
+    return buildCommonVoiceCommands({
+      navigate,
+      signOut,
+      updateProfile,
+      profile,
+      notify,
+    })
+  }, [navigate, profile, signOut, updateProfile])
+
+  const handleVoiceCommand = useCallback(async (transcript: string) => {
+    const normalized = normalizeVoiceText(transcript)
+    if (!normalized) return
+    await runVoiceCommands(voiceCommands, { transcript, normalized })
+  }, [voiceCommands])
+
+  useVoiceCommandListener(handleVoiceCommand)
 
   return (
     <div className="app-shell">

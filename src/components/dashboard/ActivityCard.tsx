@@ -10,7 +10,7 @@ type ActivityCardProps = {
   isTeacher: boolean
   onQuickStatus: (activity: Activity, nextStatus: Activity['status']) => void
   onEdit: (activity: Activity) => void
-  onDelete: (activityId: string) => void
+  onDelete: (activity: Activity) => void
   onToggleChecklist: (activityId: string, item: ChecklistItem) => void
   onAddChecklistItem: (activityId: string) => void
   onChecklistDraftChange: (activityId: string, value: string) => void
@@ -20,6 +20,7 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
   const checklistInputId = `checklist-${activity.id}`
   const showHelpAction = !isTeacher && activity.status !== 'done'
   const showResumeAction = !isTeacher && activity.status === 'paused'
+  const statusLabel = activity.status === 'paused' ? 'Precisa de ajuda' : statusLabels[activity.status]
   const isOverdue =
     activity.status !== 'done' &&
     activity.due_date !== null &&
@@ -30,7 +31,7 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
       <header className="card-header">
         <div>
           <div className="card-badges">
-            <span className={`chip status-chip status-${activity.status}`}>{statusLabels[activity.status]}</span>
+            <span className={`chip status-chip status-${activity.status}`}>{statusLabel}</span>
             {activity.category ? <span className="chip category-chip">{activity.category}</span> : null}
           </div>
           <h3>{activity.title}</h3>
@@ -42,11 +43,11 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
                 Reabrir
               </button>
             ) : null
-          ) : (
+          ) : !isTeacher ? (
             <button type="button" onClick={() => onQuickStatus(activity, 'done')} aria-label={`Concluir atividade: ${activity.title}`}>
               Concluir
             </button>
-          )}
+          ) : null}
           {showHelpAction ? (
             <button type="button" className="ghost" onClick={() => onQuickStatus(activity, showResumeAction ? 'todo' : 'paused')} aria-label={`Pedir ajuda na atividade: ${activity.title}`}>
               {showResumeAction ? 'Retomar' : 'Preciso de ajuda'}
@@ -57,7 +58,7 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
               <button type="button" className="ghost" onClick={() => onEdit(activity)} aria-label={`Editar atividade: ${activity.title}`}>
                 Editar
               </button>
-              <button type="button" className="ghost danger" onClick={() => onDelete(activity.id)} aria-label={`Excluir atividade: ${activity.title}`}>
+              <button type="button" className="ghost danger" onClick={() => onDelete(activity)} aria-label={`Excluir atividade: ${activity.title}`}>
                 Excluir
               </button>
             </>
@@ -67,7 +68,7 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
 
       <div className="card-body">
         {activity.description ? <p>{activity.description}</p> : null}
-        {isOverdue ? <p className="status error">Tarefa atrasada.</p> : null}
+        {isOverdue ? <p className="status error">Atividade atrasada.</p> : null}
         <div className="meta-grid">
           <div>
             <span className="meta-label">Data</span>
