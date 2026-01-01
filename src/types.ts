@@ -4,6 +4,7 @@ export type Profile = {
   font_scale: number
   high_contrast: boolean
   reduce_motion: boolean
+  screen_reader_enabled: boolean
   role: 'teacher' | 'student' | 'caregiver'
 }
 

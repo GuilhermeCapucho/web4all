@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, font_scale, high_contrast, reduce_motion, role')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, role')
       .eq('id', userId)
       .single()
 
@@ -69,9 +69,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           font_scale: updates.font_scale ?? profile?.font_scale ?? 100,
           high_contrast: updates.high_contrast ?? profile?.high_contrast ?? false,
           reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
+          screen_reader_enabled: updates.screen_reader_enabled ?? profile?.screen_reader_enabled ?? false,
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast, reduce_motion, role')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, role')
         .single()
 
       if (error) {

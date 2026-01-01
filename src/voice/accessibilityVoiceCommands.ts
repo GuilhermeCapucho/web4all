@@ -10,26 +10,16 @@ type AccessibilityVoiceDeps = {
 const fontSteps = [100, 110, 120, 130]
 
 const matchesHighContrastOn = (normalized: string) =>
-  normalized.includes('alto contraste') ||
-  normalized.includes('ligar modo leitura') ||
-  normalized.includes('ligar leitura') ||
-  normalized.includes('ligar ler') ||
-  normalized.includes('ligar modo ler') ||
-  normalized.includes('ativar modo ler') ||
+  normalized.includes('contraste alto') ||
   normalized.includes('ativar modo leitura')
 
 const matchesHighContrastOff = (normalized: string) =>
+  normalized.includes('contraste baixo') ||
   normalized.includes('desativar alto contraste') ||
   normalized.includes('desligar alto contraste') ||
   normalized.includes('tirar alto contraste') ||
   normalized.includes('tirar modo leitura') ||
-  normalized.includes('tirar modo ler') ||
-  normalized.includes('tirar ler') ||
-  normalized.includes('desativar leitura') ||
-  normalized.includes('desativar ler') ||
-  normalized.includes('desativar modo ler') ||
   normalized.includes('desligar leitura') ||
-  normalized.includes('desligar ler') ||
   normalized.includes('desligar modo ler')
 
 const matchesReduceMotionOn = (normalized: string) =>
@@ -64,13 +54,21 @@ const matchesFontSizeDown = (normalized: string) =>
   normalized.includes('diminuir tamanho da fonte') ||
   normalized.includes('diminuir fonte')
 
+const matchesScreenReaderOn = (normalized: string) =>
+  normalized.includes('habilitar leitor de tela')
+
+const matchesScreenReaderOff = (normalized: string) =>
+  normalized.includes('desligar leitor de tela')
+
 export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesHighContrastOn(normalized) ||
   matchesHighContrastOff(normalized) ||
   matchesReduceMotionOn(normalized) ||
   matchesReduceMotionOff(normalized) ||
   matchesFontSizeUp(normalized) ||
-  matchesFontSizeDown(normalized)
+  matchesFontSizeDown(normalized) ||
+  matchesScreenReaderOn(normalized) ||
+  matchesScreenReaderOff(normalized)
 
 export const buildAccessibilityVoiceCommands = ({
   updateProfile,
@@ -129,6 +127,22 @@ export const buildAccessibilityVoiceCommands = ({
       const nextScale = fontSteps[Math.max(index - 1, 0)]
       const error = await updateProfile({ font_scale: nextScale })
       notify?.(error ?? `Fonte ajustada para ${nextScale}%.`, error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'screen-reader-on',
+    match: matchesScreenReaderOn,
+    run: async () => {
+      const error = await updateProfile({ screen_reader_enabled: true })
+      notify?.(error ?? 'Leitor de tela ativado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'screen-reader-off',
+    match: matchesScreenReaderOff,
+    run: async () => {
+      const error = await updateProfile({ screen_reader_enabled: false })
+      notify?.(error ?? 'Leitor de tela desativado.', error ? 'warning' : 'success')
     },
   },
 ]

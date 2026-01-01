@@ -22,6 +22,8 @@ export const TeacherStudents = () => {
   const [selectedId, setSelectedId] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const pageSize = 3
+  const [currentPage, setCurrentPage] = useState(1)
 
   const linkedStudents = useMemo(
     () => students.filter((student) => linkedIds.includes(student.id)),
@@ -32,6 +34,15 @@ export const TeacherStudents = () => {
     () => students.filter((student) => !linkedIds.includes(student.id)),
     [linkedIds, students],
   )
+
+  const totalPages = Math.max(1, Math.ceil(linkedStudents.length / pageSize))
+  const showPagination = linkedStudents.length > pageSize
+
+  const pagedLinkedStudents = useMemo(() => {
+    if (!showPagination) return linkedStudents
+    const start = (currentPage - 1) * pageSize
+    return linkedStudents.slice(start, start + pageSize)
+  }, [currentPage, linkedStudents, showPagination])
 
   const fetchStudents = useCallback(async () => {
     if (!user || !isTeacher) {
@@ -79,6 +90,16 @@ export const TeacherStudents = () => {
     if (selectedId || availableStudents.length === 0) return
     setSelectedId(availableStudents[0].id)
   }, [availableStudents, selectedId])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [linkedStudents.length])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const handleLinkStudent = async () => {
     if (!user || !selectedId) return
@@ -198,25 +219,50 @@ export const TeacherStudents = () => {
             {linkedStudents.length === 0 ? (
               <p className="muted">Nenhum aluno vinculado ainda.</p>
             ) : (
-              <div className="activity-list">
-                {linkedStudents.map((student) => (
-                  <article key={student.id} className="activity-card">
-                    <div className="card-header student-card-header">
-                      <div>
-                        <div className="student-title">
-                          <h3>{student.full_name?.trim() || 'Aluno sem nome'}</h3>
-                          {student.email ? <span className="muted student-email">{student.email}</span> : null}
+              <>
+                <div className="activity-list">
+                  {pagedLinkedStudents.map((student) => (
+                    <article key={student.id} className="activity-card">
+                      <div className="card-header student-card-header">
+                        <div>
+                          <div className="student-title">
+                            <h3>{student.full_name?.trim() || 'Aluno sem nome'}</h3>
+                            {student.email ? <span className="muted student-email">{student.email}</span> : null}
+                          </div>
+                        </div>
+                        <div className="card-actions">
+                          <button type="button" className="ghost danger" onClick={() => handleUnlinkStudent(student.id)}>
+                            Remover
+                          </button>
                         </div>
                       </div>
-                      <div className="card-actions">
-                        <button type="button" className="ghost danger" onClick={() => handleUnlinkStudent(student.id)}>
-                          Remover
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                    </article>
+                  ))}
+                </div>
+                {showPagination ? (
+                  <div className="pagination" role="navigation" aria-label="Paginacao de alunos vinculados">
+                    <button
+                      type="button"
+                      className="pagination-button"
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Anterior
+                    </button>
+                    <span className="pagination-info">
+                      Pagina {currentPage} de {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="pagination-button"
+                      onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Proxima
+                    </button>
+                  </div>
+                ) : null}
+              </>
             )}
           </section>
         ) : null}

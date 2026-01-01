@@ -205,6 +205,8 @@
   display: grid;
   gap: 0.75rem;
   text-align: center;
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
 }
 
 .modal-card--wide {
@@ -214,7 +216,7 @@
 
 .modal-header {
   display: grid;
-  gap: 0.4rem;
+  margin-bottom: -16px;
 }
 
 .modal-card h2 {
@@ -716,6 +718,11 @@ label.checkbox {
   z-index: 46;
 }
 
+.accessibility-actions {
+  display: grid;
+  gap: 0.1rem;
+}
+
 .accessibility-toggle {
   width: 56px;
   height: 56px;
@@ -777,6 +784,30 @@ label.checkbox {
 .accessibility-label {
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+.voice-commands {
+  column-count: 2;
+  column-gap: 1.5rem;
+}
+
+.voice-command-section {
+  display: grid;
+  gap: 0.35rem;
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+.voice-command-section h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.voice-command-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .voice-fab {
@@ -882,5 +913,15 @@ label.checkbox {
   .toast-stack {
     right: 1rem;
     left: 1rem;
+  }
+
+  .modal-card {
+    padding: 1.5rem;
+    border-radius: 20px;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .voice-commands {
+    column-count: 1;
   }
 }

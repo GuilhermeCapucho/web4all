@@ -211,7 +211,9 @@ export const useDashboardVoiceCommands = ({
       },
       {
         id: 'complete-subtask',
-        match: (normalized) => normalized.startsWith('concluir subtarefa'),
+        match: (normalized) => 
+          normalized.includes('completar subtarefa') ||
+          normalized.startsWith('concluir subtarefa'),
         run: async ({ normalized }) => {
           const match = normalized.match(/concluir subtarefa (.+?)(?: na atividade (.+))?$/)
           const subtaskTitle = match?.[1]?.trim() ?? ''
