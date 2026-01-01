@@ -182,7 +182,7 @@ export const AccessibilityWidget = () => {
         </label>
         <label className="checkbox">
           <input type="checkbox" checked={reduceMotion} onChange={toggleReduceMotion} />
-          Reduzir animacoes
+          Reduzir animações
         </label>
         <label className="checkbox">
           <input type="checkbox" checked={isScreenReaderEnabled} onChange={toggleScreenReader} />

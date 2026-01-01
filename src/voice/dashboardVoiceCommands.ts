@@ -226,11 +226,11 @@ export const useDashboardVoiceCommands = ({
           const found = findChecklistItem(subtaskTitle, activity?.id)
           if (!found) return
           if (found.item.is_done) {
-            addToast('Subtarefa ja estava concluida.', 'info')
+            addToast('Subtarefa ja estava concluída.', 'info')
             return
           }
           await setChecklistItemDone(found.activityId, found.item, true)
-          addToast('Subtarefa concluida.', 'success')
+          addToast('Subtarefa concluída.', 'success')
         },
       },
     ]

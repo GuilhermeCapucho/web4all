@@ -75,16 +75,16 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
             <span>{formatDate(activity.due_date)}</span>
           </div>
           <div>
-            <span className="meta-label">Horario</span>
+            <span className="meta-label">Horário</span>
             <span>{formatTime(activity.due_time)}</span>
           </div>
           <div>
-            <span className="meta-label">Duracao</span>
-            <span>{activity.duration_minutes ? `${activity.duration_minutes} min` : 'Sem duracao'}</span>
+            <span className="meta-label">Duração</span>
+            <span>{activity.duration_minutes ? `${activity.duration_minutes} min` : 'Sem duração'}</span>
           </div>
           <div>
-            <span className="meta-label">Recorrencia</span>
-            <span>{activity.recurrence ? recurrenceLabels[activity.recurrence] : 'Sem recorrencia'}</span>
+            <span className="meta-label">Recorrência</span>
+            <span>{activity.recurrence ? recurrenceLabels[activity.recurrence] : 'Sem recorrência'}</span>
           </div>
           {assignedLabel ? (
             <div>
@@ -108,7 +108,7 @@ export const ActivityCard = ({activity, items, draft, assignedLabel, isTeacher, 
 
         <div className="history-line">
           Criada em {new Date(activity.created_at).toLocaleDateString('pt-BR')}
-          {activity.completed_at ? ` | Concluida em ${new Date(activity.completed_at).toLocaleDateString('pt-BR')}` : ''}
+          {activity.completed_at ? ` | Concluída em ${new Date(activity.completed_at).toLocaleDateString('pt-BR')}` : ''}
           {activity.reopened_at ? ` | Reaberta em ${new Date(activity.reopened_at).toLocaleDateString('pt-BR')}` : ''}
         </div>
       </div>

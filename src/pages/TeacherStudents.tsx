@@ -168,7 +168,7 @@ export const TeacherStudents = () => {
 
           {!isTeacher ? (
             <p className="status error" role="alert">
-              Esta area esta disponivel apenas para professores.
+              Esta area esta disponível apenas para professores.
             </p>
           ) : null}
 
@@ -190,7 +190,7 @@ export const TeacherStudents = () => {
                 Aluno
                 <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={loading || availableStudents.length === 0}>
                   {availableStudents.length === 0 ? (
-                    <option value="">Nenhum aluno disponivel</option>
+                    <option value="">Nenhum aluno disponível</option>
                   ) : (
                     availableStudents.map((student) => (
                       <option key={student.id} value={student.id}>
@@ -258,7 +258,7 @@ export const TeacherStudents = () => {
                       onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                       disabled={currentPage === totalPages}
                     >
-                      Proxima
+                      Próxima
                     </button>
                   </div>
                 ) : null}

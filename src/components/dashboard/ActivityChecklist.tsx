@@ -22,7 +22,7 @@ export const ActivityChecklist = ({activityId, activityTitle, items, draft, inpu
       <div className="checklist-header">
         <strong>Checklist</strong>
         <span className="muted">
-          {completed}/{total} passos concluidos
+          {completed}/{total} passos concluídos
         </span>
       </div>
       {items.map((item) => (

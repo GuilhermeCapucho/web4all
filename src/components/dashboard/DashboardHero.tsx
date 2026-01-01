@@ -22,7 +22,7 @@ export const DashboardHero = ({ todayPending, todayDone, streak, medals, onCreat
         <div>
           <h1>Resumo rápido</h1>
           <p className="muted">
-            Hoje: {todayPending} pendentes • {todayDone} concluida{todayDone === 1 ? '' : 's'}
+            Hoje: {todayPending} pendentes • {todayDone} concluída{todayDone === 1 ? '' : 's'}
           </p>
           <p className="muted">Perfil: {roleLabel}</p>
         </div>

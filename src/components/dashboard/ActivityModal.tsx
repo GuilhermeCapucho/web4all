@@ -59,11 +59,11 @@ export const ActivityModal = ({open, mode, form, saving, isTeacher, students, ti
             </label>
           ) : null}
           <label>
-            Titulo
+            Título
             <input type="text" ref={titleInputRef} value={form.title} onChange={(event) => onChange({ title: event.target.value })} required/>
           </label>
           <label>
-            Descricao
+            Descrição
             <textarea value={form.description} onChange={(event) => onChange({ description: event.target.value })} rows={3}/>
           </label>
           <div className="form-columns">
@@ -73,7 +73,7 @@ export const ActivityModal = ({open, mode, form, saving, isTeacher, students, ti
                 <option value="todo">A fazer</option>
                 <option value="doing">Em andamento</option>
                 <option value="paused">Pausada</option>
-                <option value="done">Concluida</option>
+                <option value="done">Concluída</option>
               </select>
             </label>
             <label>
@@ -87,19 +87,19 @@ export const ActivityModal = ({open, mode, form, saving, isTeacher, students, ti
               <input type="date" value={form.due_date} onChange={(event) => onChange({ due_date: event.target.value })} />
             </label>
             <label>
-              Horario
+              Horário
               <input type="time" value={form.due_time} onChange={(event) => onChange({ due_time: event.target.value })} />
             </label>
           </div>
           <div className="form-columns">
             <label>
-              Duracao (min)
+              Duração (min)
               <input type="number" min={0} value={form.duration_minutes} onChange={(event) => onChange({ duration_minutes: event.target.value })}/>
             </label>
             <label>
-              Recorrencia
+              Recorrência
               <select value={form.recurrence} onChange={(event) => onChange({ recurrence: event.target.value as ActivityFormState['recurrence'] })}>
-                <option value="none">Sem recorrencia</option>
+                <option value="none">Sem recorrência</option>
                 <option value="daily">Diaria</option>
                 <option value="weekly">Semanal</option>
               </select>

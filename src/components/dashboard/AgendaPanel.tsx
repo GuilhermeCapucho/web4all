@@ -132,7 +132,7 @@ export const AgendaPanel = ({
       <div className="filters-row">
         <label className="filter-field">
           Busca
-          <input type="search" value={filters.search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar por titulo ou descricao"/>
+          <input type="search" value={filters.search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar por título ou descrição"/>
         </label>
         <label className="filter-field">
           Status
@@ -141,7 +141,7 @@ export const AgendaPanel = ({
             <option value="todo">A fazer</option>
             <option value="doing">Em andamento</option>
             <option value="paused">Pausada</option>
-            <option value="done">Concluida</option>
+            <option value="done">Concluída</option>
           </select>
         </label>
         <label className="filter-field">
@@ -200,7 +200,7 @@ export const AgendaPanel = ({
             onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
             disabled={currentPage === totalPages}
           >
-            Proxima
+            Próxima
           </button>
         </div>
       ) : null}

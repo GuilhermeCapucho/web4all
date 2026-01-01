@@ -470,7 +470,7 @@ export const Dashboard = () => {
     await logHistory(activity.id, 'status_changed', activity.status, nextStatus)
 
     if (nextStatus === 'done') {
-      addToast('Parabens, concluida!', 'success')
+      addToast('Parabens, concluída!', 'success')
     } else if (nextStatus === 'paused') {
       addToast('Pedido de ajuda enviado.', 'warning')
     } else {

@@ -4,7 +4,7 @@ export const statusLabels: Record<Activity['status'], string> = {
   todo: 'A fazer',
   doing: 'Em andamento',
   paused: 'Pausada',
-  done: 'Concluida',
+  done: 'Concluída',
 }
 
 export const recurrenceLabels: Record<NonNullable<Activity['recurrence']>, string> = {
@@ -42,6 +42,6 @@ export const formatDate = (value: string | null) => {
 }
 
 export const formatTime = (value: string | null) => {
-  if (!value) return 'Sem horario'
+  if (!value) return 'Sem horário'
   return value.slice(0, 5)
 }
