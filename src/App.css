@@ -266,6 +266,17 @@
   gap: 1rem;
 }
 
+.braille-tagline {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.braille-text {
+  font-size: 0.85rem;
+  letter-spacing: 0.12rem;
+  color: var(--muted);
+}
+
 .brand-logo {
   width: 72px;
   height: 72px;
