@@ -45,6 +45,36 @@
   scroll-behavior: auto !important;
 }
 
+:root[data-colorblind='deuteranopia'] .colorblind-layer {
+  filter: url('#cb-deuteranopia');
+}
+
+:root[data-colorblind='deuteranopia'] .accessibility-widget,
+:root[data-colorblind='deuteranopia'] .voice-fab,
+:root[data-colorblind='deuteranopia'] .toast-stack {
+  filter: url('#cb-deuteranopia');
+}
+
+:root[data-colorblind='protanopia'] .colorblind-layer {
+  filter: url('#cb-protanopia');
+}
+
+:root[data-colorblind='protanopia'] .accessibility-widget,
+:root[data-colorblind='protanopia'] .voice-fab,
+:root[data-colorblind='protanopia'] .toast-stack {
+  filter: url('#cb-protanopia');
+}
+
+:root[data-colorblind='tritanopia'] .colorblind-layer {
+  filter: url('#cb-tritanopia');
+}
+
+:root[data-colorblind='tritanopia'] .accessibility-widget,
+:root[data-colorblind='tritanopia'] .voice-fab,
+:root[data-colorblind='tritanopia'] .toast-stack {
+  filter: url('#cb-tritanopia');
+}
+
 *,
 *::before,
 *::after {

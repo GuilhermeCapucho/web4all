@@ -27,6 +27,7 @@ export const AccessibilityWidget = () => {
   const highContrast = profile?.high_contrast ?? false
   const reduceMotion = profile?.reduce_motion ?? false
   const persistedScreenReaderEnabled = profile?.screen_reader_enabled ?? false
+  const colorBlindness = profile?.color_blindness ?? 'none'
 
   const fontLabel = useMemo(() => {
     const scaleLabel = fontScale === 100 ? 'Normal' : fontScale === 110 ? 'Grande' : fontScale === 120 ? 'Muito grande' : 'Extra grande'
@@ -86,6 +87,13 @@ export const AccessibilityWidget = () => {
   const toggleReduceMotion = useCallback(async () => {
     await updateProfile({ reduce_motion: !reduceMotion })
   }, [reduceMotion, updateProfile])
+
+  const updateColorBlindness = useCallback(
+    async (value: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia') => {
+      await updateProfile({ color_blindness: value })
+    },
+    [updateProfile],
+  )
 
   const addToast = useCallback((message: string, tone: ToastTone = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
@@ -188,6 +196,21 @@ export const AccessibilityWidget = () => {
           <input type="checkbox" checked={isScreenReaderEnabled} onChange={toggleScreenReader} />
           Leitor de tela
         </label>
+        <div className="accessibility-section">
+          <label className="accessibility-label" htmlFor="color-blindness-select">
+            Daltonismo
+          </label>
+          <select
+            id="color-blindness-select"
+            value={colorBlindness}
+            onChange={(event) => updateColorBlindness(event.target.value as typeof colorBlindness)}
+          >
+            <option value="none">Desativado</option>
+            <option value="deuteranopia">Deuteranopia</option>
+            <option value="protanopia">Protanopia</option>
+            <option value="tritanopia">Tritanopia</option>
+          </select>
+        </div>
       </div>
       </div>
       {isVoiceHelpOpen ? (

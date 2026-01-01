@@ -26,9 +26,11 @@ const applyAccessibilityPrefs = (profile: Profile | null) => {
   const scale = profile?.font_scale ? profile.font_scale / 100 : 1
   const contrast = profile?.high_contrast ? 'high' : 'normal'
   const motion = profile?.reduce_motion ? 'reduced' : 'normal'
+  const colorBlindness = profile?.color_blindness ?? 'none'
   root.style.setProperty('--font-scale', String(scale))
   root.dataset.contrast = contrast
   root.dataset.motion = motion
+  root.dataset.colorblind = colorBlindness
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, role')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, color_blindness, role')
       .eq('id', userId)
       .single()
 
@@ -70,9 +72,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           high_contrast: updates.high_contrast ?? profile?.high_contrast ?? false,
           reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
           screen_reader_enabled: updates.screen_reader_enabled ?? profile?.screen_reader_enabled ?? false,
+          color_blindness: updates.color_blindness ?? profile?.color_blindness ?? 'none',
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, role')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, color_blindness, role')
         .single()
 
       if (error) {
