@@ -71,7 +71,7 @@ export const Register = () => {
   }
 
   return (
-    <main className="auth-layout">
+    <main className="auth-layout auth-layout--split">
       <section className="auth-card">
         <header>
           <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
@@ -106,6 +106,19 @@ export const Register = () => {
           <span className="muted">Ja tem conta?</span>
           <Link to="/login">Entrar</Link>
         </footer>
+      </section>
+      <section
+        className="auth-photo"
+        style={{ backgroundImage: "url('/students/register-image.jpg')" }}
+        aria-label="Aprendizado acessível para todos"
+      >
+        <div className="auth-photo__content">
+          <p className="auth-photo__eyebrow">Web4All</p>
+          <h2>Aprendizado acessível para todos</h2>
+          <p className="auth-photo__subtitle">
+            Cadastre sua conta e acompanhe o desenvolvimento com mais autonomia e inclusão.
+          </p>
+        </div>
       </section>
       {showVerificationNotice ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="verification-title" aria-describedby="verification-description">

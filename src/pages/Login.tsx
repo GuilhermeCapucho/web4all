@@ -42,7 +42,7 @@ export const Login = () => {
   }
 
   return (
-    <main className="auth-layout">
+    <main className="auth-layout auth-layout--split">
       <section className="auth-card">
         <header>
           <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
@@ -73,6 +73,19 @@ export const Login = () => {
           <span className="muted">Ainda nao tem conta?</span>
           <Link to="/register">Criar conta</Link>
         </footer>
+      </section>
+      <section
+        className="auth-photo"
+        style={{ backgroundImage: "url('/students/login-image.jpg')" }}
+        aria-label="Aprendizado acessível para todos"
+      >
+        <div className="auth-photo__content">
+          <p className="auth-photo__eyebrow">Web4All</p>
+          <h2>Aprendizado acessível para todos</h2>
+          <p className="auth-photo__subtitle">
+            Uma plataforma pensada para acolher diferentes necessidades e potencializar cada estudante.
+          </p>
+        </div>
       </section>
     </main>
   )
