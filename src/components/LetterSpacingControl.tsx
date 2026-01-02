@@ -8,7 +8,7 @@ const letterSpacingSteps = [0, 0.02, 0.04]
 export const LetterSpacingControl = ({ value, onChange }: LetterSpacingControlProps) => {
   return (
     <div className="accessibility-section">
-      <span className="accessibility-label" id="letter-spacing-label">Espaco entre letras</span>
+      <span className="accessibility-label" id="letter-spacing-label">Espaço entre letras</span>
       <div className="segmented-control" role="group" aria-labelledby="letter-spacing-label">
         {letterSpacingSteps.map((step) => (
           <button
@@ -18,7 +18,7 @@ export const LetterSpacingControl = ({ value, onChange }: LetterSpacingControlPr
             onClick={() => onChange(step)}
             aria-pressed={value === step}
           >
-            {step === 0 ? 'Normal' : step === 0.02 ? 'Medio' : 'Amplo'}
+            {step === 0 ? 'Normal' : step === 0.02 ? 'Médio' : 'Amplo'}
           </button>
         ))}
       </div>

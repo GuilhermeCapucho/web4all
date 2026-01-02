@@ -8,6 +8,7 @@ import { ScreenReader } from './ScreenReader'
 import { ContentMagnifier } from './ContentMagnifier'
 import { LinkHighlightToggle } from './LinkHighlightToggle'
 import { LetterSpacingControl } from './LetterSpacingControl'
+import { LineSpacingControl } from './LineSpacingControl'
 
 const fontSteps = [100, 110, 120, 130]
 type ToastTone = 'info' | 'success' | 'warning'
@@ -78,6 +79,8 @@ export const AccessibilityWidget = () => {
           '"Desabilitar links"',
           '"Aumentar espaço entre letras"',
           '"Diminuir espaço entre letras"',
+          '"Aumentar espaço entre linhas"',
+          '"Diminuir espaço entre linhas"',
         ],
       },
     ],
@@ -93,6 +96,10 @@ export const AccessibilityWidget = () => {
 
   const updateLetterSpacing = useCallback(async (value: number) => {
     await updateProfile({ letter_spacing: value })
+  }, [updateProfile])
+
+  const updateLineSpacing = useCallback(async (value: number) => {
+    await updateProfile({ line_spacing: value })
   }, [updateProfile])
 
   const toggleHighContrast = useCallback(async () => {
@@ -208,6 +215,7 @@ export const AccessibilityWidget = () => {
           </div>
         </div>
         <LetterSpacingControl value={profile?.letter_spacing ?? 0} onChange={updateLetterSpacing} />
+        <LineSpacingControl value={profile?.line_spacing ?? 1.4} onChange={updateLineSpacing} />
         <label className="checkbox">
           <input type="checkbox" checked={highContrast} onChange={toggleHighContrast} />
           Alto contraste

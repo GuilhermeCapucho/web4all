@@ -1,6 +1,6 @@
 :root {
   font-family: 'Sora', 'Segoe UI', sans-serif;
-  line-height: 1.6;
+  line-height: var(--line-height);
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -9,6 +9,7 @@
   --app-zoom: 0.9;
   --font-scale: 1;
   --letter-spacing: 0em;
+  --line-height: 1.4;
   --bg: #f3efe7;
   --surface: #ffffff;
   --surface-alt: #f8f5ef;
@@ -95,6 +96,7 @@ body {
   position: relative;
   zoom: var(--app-zoom);
   letter-spacing: var(--letter-spacing);
+  line-height: var(--line-height);
 }
 
 body::before {

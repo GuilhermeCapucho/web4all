@@ -9,6 +9,7 @@ type AccessibilityVoiceDeps = {
 
 const fontSteps = [100, 110, 120, 130]
 const letterSpacingSteps = [0, 0.02, 0.04]
+const lineSpacingSteps = [1.4, 1.6, 1.8]
 
 const matchesHighContrastOn = (normalized: string) =>
   normalized.includes('contraste alto') ||
@@ -100,6 +101,22 @@ const matchesLetterSpacingDown = (normalized: string) =>
   normalized.includes('diminuir espacamento') ||
   normalized.includes('diminuir espaco nas letras')
 
+const matchesLineSpacingUp = (normalized: string) =>
+  normalized.includes('aumentar espaco entre linhas') ||
+  normalized.includes('aumentar o espaco entre linhas') ||
+  normalized.includes('aumentar espacamento entre linhas') ||
+  normalized.includes('aumentar o espacamento entre linhas') ||
+  normalized.includes('aumentar espacamento') ||
+  normalized.includes('aumentar espaco nas linhas')
+
+const matchesLineSpacingDown = (normalized: string) =>
+  normalized.includes('diminuir espaco entre linhas') ||
+  normalized.includes('diminuir o espaco entre linhas') ||
+  normalized.includes('diminuir espacamento entre linhas') ||
+  normalized.includes('diminuir o espacamento entre linhas') ||
+  normalized.includes('diminuir espacamento') ||
+  normalized.includes('diminuir espaco nas linhas')
+
 export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesHighContrastOn(normalized) ||
   matchesHighContrastOff(normalized) ||
@@ -114,7 +131,9 @@ export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesLinkHighlightOn(normalized) ||
   matchesLinkHighlightOff(normalized) ||
   matchesLetterSpacingUp(normalized) ||
-  matchesLetterSpacingDown(normalized)
+  matchesLetterSpacingDown(normalized) ||
+  matchesLineSpacingUp(normalized) ||
+  matchesLineSpacingDown(normalized)
 
 export const buildAccessibilityVoiceCommands = ({
   updateProfile,
@@ -142,7 +161,7 @@ export const buildAccessibilityVoiceCommands = ({
     match: matchesReduceMotionOn,
     run: async () => {
       const error = await updateProfile({ reduce_motion: true })
-      notify?.(error ?? 'Animacoes reduzidas.', error ? 'warning' : 'success')
+      notify?.(error ?? 'Animações reduzidas.', error ? 'warning' : 'success')
     },
   },
   {
@@ -150,7 +169,7 @@ export const buildAccessibilityVoiceCommands = ({
     match: matchesReduceMotionOff,
     run: async () => {
       const error = await updateProfile({ reduce_motion: false })
-      notify?.(error ?? 'Animacoes restauradas.', error ? 'warning' : 'success')
+      notify?.(error ?? 'Animações restauradas.', error ? 'warning' : 'success')
     },
   },
   {
@@ -231,7 +250,7 @@ export const buildAccessibilityVoiceCommands = ({
       const index = Math.max(letterSpacingSteps.indexOf(current), 0)
       const nextSpacing = letterSpacingSteps[Math.min(index + 1, letterSpacingSteps.length - 1)]
       const error = await updateProfile({ letter_spacing: nextSpacing })
-      notify?.(error ?? 'Espaco entre letras aumentado.', error ? 'warning' : 'success')
+      notify?.(error ?? 'Espaço entre letras aumentado.', error ? 'warning' : 'success')
     },
   },
   {
@@ -242,7 +261,29 @@ export const buildAccessibilityVoiceCommands = ({
       const index = Math.max(letterSpacingSteps.indexOf(current), 0)
       const nextSpacing = letterSpacingSteps[Math.max(index - 1, 0)]
       const error = await updateProfile({ letter_spacing: nextSpacing })
-      notify?.(error ?? 'Espaco entre letras diminuido.', error ? 'warning' : 'success')
+      notify?.(error ?? 'Espaço entre letras diminuído.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'line-spacing-up',
+    match: matchesLineSpacingUp,
+    run: async () => {
+      const current = profile?.line_spacing ?? 1.4
+      const index = Math.max(lineSpacingSteps.indexOf(current), 0)
+      const nextSpacing = lineSpacingSteps[Math.min(index + 1, lineSpacingSteps.length - 1)]
+      const error = await updateProfile({ line_spacing: nextSpacing })
+      notify?.(error ?? 'Espaço entre linhas aumentado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'line-spacing-down',
+    match: matchesLineSpacingDown,
+    run: async () => {
+      const current = profile?.line_spacing ?? 1.4
+      const index = Math.max(lineSpacingSteps.indexOf(current), 0)
+      const nextSpacing = lineSpacingSteps[Math.max(index - 1, 0)]
+      const error = await updateProfile({ line_spacing: nextSpacing })
+      notify?.(error ?? 'Espaço entre linhas diminuído.', error ? 'warning' : 'success')
     },
   },
 ]
