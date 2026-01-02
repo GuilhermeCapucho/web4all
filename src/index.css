@@ -8,6 +8,7 @@
   -moz-osx-font-smoothing: grayscale;
   --app-zoom: 0.9;
   --font-scale: 1;
+  --letter-spacing: 0em;
   --bg: #f3efe7;
   --surface: #ffffff;
   --surface-alt: #f8f5ef;
@@ -93,6 +94,7 @@ body {
   color: var(--text);
   position: relative;
   zoom: var(--app-zoom);
+  letter-spacing: var(--letter-spacing);
 }
 
 body::before {

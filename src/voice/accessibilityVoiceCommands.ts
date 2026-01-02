@@ -8,6 +8,7 @@ type AccessibilityVoiceDeps = {
 }
 
 const fontSteps = [100, 110, 120, 130]
+const letterSpacingSteps = [0, 0.02, 0.04]
 
 const matchesHighContrastOn = (normalized: string) =>
   normalized.includes('contraste alto') ||
@@ -83,6 +84,22 @@ const matchesLinkHighlightOff = (normalized: string) =>
   normalized.includes('desativar links') ||
   normalized.includes('tirar destaque de links')
 
+const matchesLetterSpacingUp = (normalized: string) =>
+  normalized.includes('aumentar espaco entre letras') ||
+  normalized.includes('aumentar o espaco entre letras') ||
+  normalized.includes('aumentar espacamento entre letras') ||
+  normalized.includes('aumentar o espacamento entre letras') ||
+  normalized.includes('aumentar espacamento') ||
+  normalized.includes('aumentar espaco nas letras')
+
+const matchesLetterSpacingDown = (normalized: string) =>
+  normalized.includes('diminuir espaco entre letras') ||
+  normalized.includes('diminuir o espaco entre letras') ||
+  normalized.includes('diminuir espacamento entre letras') ||
+  normalized.includes('diminuir o espacamento entre letras') ||
+  normalized.includes('diminuir espacamento') ||
+  normalized.includes('diminuir espaco nas letras')
+
 export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesHighContrastOn(normalized) ||
   matchesHighContrastOff(normalized) ||
@@ -95,7 +112,9 @@ export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesContentMagnifierOn(normalized) ||
   matchesContentMagnifierOff(normalized) ||
   matchesLinkHighlightOn(normalized) ||
-  matchesLinkHighlightOff(normalized)
+  matchesLinkHighlightOff(normalized) ||
+  matchesLetterSpacingUp(normalized) ||
+  matchesLetterSpacingDown(normalized)
 
 export const buildAccessibilityVoiceCommands = ({
   updateProfile,
@@ -202,6 +221,28 @@ export const buildAccessibilityVoiceCommands = ({
     run: async () => {
       const error = await updateProfile({ link_highlight_enabled: false })
       notify?.(error ?? 'Destaque de links desativado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'letter-spacing-up',
+    match: matchesLetterSpacingUp,
+    run: async () => {
+      const current = profile?.letter_spacing ?? 0
+      const index = Math.max(letterSpacingSteps.indexOf(current), 0)
+      const nextSpacing = letterSpacingSteps[Math.min(index + 1, letterSpacingSteps.length - 1)]
+      const error = await updateProfile({ letter_spacing: nextSpacing })
+      notify?.(error ?? 'Espaco entre letras aumentado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'letter-spacing-down',
+    match: matchesLetterSpacingDown,
+    run: async () => {
+      const current = profile?.letter_spacing ?? 0
+      const index = Math.max(letterSpacingSteps.indexOf(current), 0)
+      const nextSpacing = letterSpacingSteps[Math.max(index - 1, 0)]
+      const error = await updateProfile({ letter_spacing: nextSpacing })
+      notify?.(error ?? 'Espaco entre letras diminuido.', error ? 'warning' : 'success')
     },
   },
 ]

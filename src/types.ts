@@ -7,6 +7,7 @@ export type Profile = {
   screen_reader_enabled: boolean
   content_magnifier_enabled: boolean
   link_highlight_enabled: boolean
+  letter_spacing: number
   color_blindness: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia' | null
   role: 'teacher' | 'student' | 'caregiver'
 }
