@@ -243,7 +243,10 @@ export const AccessibilityWidget = () => {
             </div>
             <div className="voice-commands">
               {voiceCommandSections.map((section) => (
-                <div key={section.title} className="voice-command-section">
+                <div
+                  key={section.title}
+                  className={`voice-command-section${section.title === 'Acessibilidade' ? ' voice-command-section--break' : ''}`}
+                >
                   <h3>{section.title}</h3>
                   <ul className="voice-command-list">
                     {section.commands.map((command) => (
