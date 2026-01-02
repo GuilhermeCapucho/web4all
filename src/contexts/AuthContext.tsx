@@ -28,11 +28,13 @@ const applyAccessibilityPrefs = (profile: Profile | null) => {
   const motion = profile?.reduce_motion ? 'reduced' : 'normal'
   const colorBlindness = profile?.color_blindness ?? 'none'
   const contentMagnifier = profile?.content_magnifier_enabled ? 'on' : 'off'
+  const linkHighlight = profile?.link_highlight_enabled ? 'highlight' : 'normal'
   root.style.setProperty('--font-scale', String(scale))
   root.dataset.contrast = contrast
   root.dataset.motion = motion
   root.dataset.colorblind = colorBlindness
   root.dataset.contentmagnifier = contentMagnifier
+  root.dataset.links = linkHighlight
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -45,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, color_blindness, role')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, link_highlight_enabled, color_blindness, role')
       .eq('id', userId)
       .single()
 
@@ -75,10 +77,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
           screen_reader_enabled: updates.screen_reader_enabled ?? profile?.screen_reader_enabled ?? false,
           content_magnifier_enabled: updates.content_magnifier_enabled ?? profile?.content_magnifier_enabled ?? false,
+          link_highlight_enabled: updates.link_highlight_enabled ?? profile?.link_highlight_enabled ?? false,
           color_blindness: updates.color_blindness ?? profile?.color_blindness ?? 'none',
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, color_blindness, role')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, link_highlight_enabled, color_blindness, role')
         .single()
 
       if (error) {

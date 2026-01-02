@@ -70,6 +70,19 @@ const matchesContentMagnifierOff = (normalized: string) =>
   normalized.includes('desligar lupa') ||
   normalized.includes('desativar lupa')
 
+const matchesLinkHighlightOn = (normalized: string) =>
+  normalized.includes('ligar links') ||
+  normalized.includes('ativar links') ||
+  normalized.includes('destacar links') ||
+  normalized.includes('habilitar links') ||
+  normalized.includes('habilitar destaque de links')
+
+const matchesLinkHighlightOff = (normalized: string) =>
+  normalized.includes('desabilitar links') ||
+  normalized.includes('desligar links') ||
+  normalized.includes('desativar links') ||
+  normalized.includes('tirar destaque de links')
+
 export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesHighContrastOn(normalized) ||
   matchesHighContrastOff(normalized) ||
@@ -80,7 +93,9 @@ export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesScreenReaderOn(normalized) ||
   matchesScreenReaderOff(normalized) ||
   matchesContentMagnifierOn(normalized) ||
-  matchesContentMagnifierOff(normalized)
+  matchesContentMagnifierOff(normalized) ||
+  matchesLinkHighlightOn(normalized) ||
+  matchesLinkHighlightOff(normalized)
 
 export const buildAccessibilityVoiceCommands = ({
   updateProfile,
@@ -171,6 +186,22 @@ export const buildAccessibilityVoiceCommands = ({
     run: async () => {
       const error = await updateProfile({ content_magnifier_enabled: false })
       notify?.(error ?? 'Lupa desativada.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'link-highlight-on',
+    match: matchesLinkHighlightOn,
+    run: async () => {
+      const error = await updateProfile({ link_highlight_enabled: true })
+      notify?.(error ?? 'Destaque de links ativado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'link-highlight-off',
+    match: matchesLinkHighlightOff,
+    run: async () => {
+      const error = await updateProfile({ link_highlight_enabled: false })
+      notify?.(error ?? 'Destaque de links desativado.', error ? 'warning' : 'success')
     },
   },
 ]

@@ -6,6 +6,7 @@ import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voic
 import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 import { ScreenReader } from './ScreenReader'
 import { ContentMagnifier } from './ContentMagnifier'
+import { LinkHighlightToggle } from './LinkHighlightToggle'
 
 const fontSteps = [100, 110, 120, 130]
 type ToastTone = 'info' | 'success' | 'warning'
@@ -30,6 +31,7 @@ export const AccessibilityWidget = () => {
   const persistedScreenReaderEnabled = profile?.screen_reader_enabled ?? false
   const colorBlindness = profile?.color_blindness ?? 'none'
   const isContentMagnifierEnabled = profile?.content_magnifier_enabled ?? false
+  const isLinkHighlightEnabled = profile?.link_highlight_enabled ?? false
 
   const fontLabel = useMemo(() => {
     const scaleLabel = fontScale === 100 ? 'Normal' : fontScale === 110 ? 'Grande' : fontScale === 120 ? 'Muito grande' : 'Extra grande'
@@ -71,6 +73,8 @@ export const AccessibilityWidget = () => {
           '"Desligar leitor de tela"',
           '"Ligar lupa"',
           '"Desabilitar lupa"',
+          '"Destacar links"',
+          '"Desabilitar links"',
         ],
       },
     ],
@@ -102,6 +106,10 @@ export const AccessibilityWidget = () => {
   const toggleContentMagnifier = useCallback(async () => {
     await updateProfile({ content_magnifier_enabled: !isContentMagnifierEnabled })
   }, [isContentMagnifierEnabled, updateProfile])
+
+  const toggleLinkHighlight = useCallback(async () => {
+    await updateProfile({ link_highlight_enabled: !isLinkHighlightEnabled })
+  }, [isLinkHighlightEnabled, updateProfile])
 
   const addToast = useCallback((message: string, tone: ToastTone = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
@@ -208,6 +216,7 @@ export const AccessibilityWidget = () => {
           <input type="checkbox" checked={isContentMagnifierEnabled} onChange={toggleContentMagnifier} />
           Lupa de Conteudo
         </label>
+        <LinkHighlightToggle enabled={isLinkHighlightEnabled} onToggle={toggleLinkHighlight} />
         <div className="accessibility-section">
           <label className="accessibility-label" htmlFor="color-blindness-select">
             Daltonismo
