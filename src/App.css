@@ -344,6 +344,7 @@
 .muted {
   color: var(--muted);
   font-size: 0.95rem;
+  margin-top: 8px;
 }
 
 .nav-links {

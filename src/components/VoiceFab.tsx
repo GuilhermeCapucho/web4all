@@ -124,7 +124,14 @@ export const VoiceFab = () => {
   if (!user) return null
 
   return (
-    <button type="button" className={`voice-fab${listening ? ' is-listening' : ''}`} onClick={toggleListening} aria-label={listening ? 'Parar de ouvir' : 'Ouvir comandos de voz'} aria-pressed={listening}>
+    <button
+      type="button"
+      className={`voice-fab${listening ? ' is-listening' : ''}`}
+      onClick={toggleListening}
+      aria-label={listening ? 'Parar de ouvir' : 'Ouvir comandos de voz'}
+      aria-pressed={listening}
+      title={listening ? 'Parar de ouvir (aperte O para desativar)' : 'Ouvir (aperte O para ativar)'}
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path
           fill="currentColor"
