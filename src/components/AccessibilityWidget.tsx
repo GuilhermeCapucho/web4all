@@ -5,6 +5,7 @@ import { buildAccessibilityVoiceCommands } from '../voice/accessibilityVoiceComm
 import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voice/voiceCommands'
 import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 import { ScreenReader } from './ScreenReader'
+import { ContentMagnifier } from './ContentMagnifier'
 
 const fontSteps = [100, 110, 120, 130]
 type ToastTone = 'info' | 'success' | 'warning'
@@ -28,6 +29,7 @@ export const AccessibilityWidget = () => {
   const reduceMotion = profile?.reduce_motion ?? false
   const persistedScreenReaderEnabled = profile?.screen_reader_enabled ?? false
   const colorBlindness = profile?.color_blindness ?? 'none'
+  const isContentMagnifierEnabled = profile?.content_magnifier_enabled ?? false
 
   const fontLabel = useMemo(() => {
     const scaleLabel = fontScale === 100 ? 'Normal' : fontScale === 110 ? 'Grande' : fontScale === 120 ? 'Muito grande' : 'Extra grande'
@@ -67,6 +69,8 @@ export const AccessibilityWidget = () => {
           '"Ligar animações"',
           '"Habilitar leitor de tela"',
           '"Desligar leitor de tela"',
+          '"Ligar lupa"',
+          '"Desabilitar lupa"',
         ],
       },
     ],
@@ -94,6 +98,10 @@ export const AccessibilityWidget = () => {
     },
     [updateProfile],
   )
+
+  const toggleContentMagnifier = useCallback(async () => {
+    await updateProfile({ content_magnifier_enabled: !isContentMagnifierEnabled })
+  }, [isContentMagnifierEnabled, updateProfile])
 
   const addToast = useCallback((message: string, tone: ToastTone = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
@@ -147,7 +155,7 @@ export const AccessibilityWidget = () => {
 
   return (
     <>
-      <div className={`accessibility-widget${isOpen ? ' is-open' : ''}`}>
+      <div className={`accessibility-widget${isOpen ? ' is-open' : ''}`} data-lupa-ignore="true">
         <div className="accessibility-actions">
           <button type="button" className="accessibility-toggle" onClick={() => setIsOpen((current) => !current)} aria-label={isOpen ? 'Fechar acessibilidade' : 'Abrir acessibilidade'} aria-expanded={isOpen} aria-controls="accessibility-panel">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true" focusable="false">
@@ -196,6 +204,10 @@ export const AccessibilityWidget = () => {
           <input type="checkbox" checked={isScreenReaderEnabled} onChange={toggleScreenReader} />
           Leitor de tela
         </label>
+        <label className="checkbox">
+          <input type="checkbox" checked={isContentMagnifierEnabled} onChange={toggleContentMagnifier} />
+          Lupa de Conteudo
+        </label>
         <div className="accessibility-section">
           <label className="accessibility-label" htmlFor="color-blindness-select">
             Daltonismo
@@ -214,7 +226,7 @@ export const AccessibilityWidget = () => {
       </div>
       </div>
       {isVoiceHelpOpen ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Comandos de voz" onClick={() => setIsVoiceHelpOpen(false)}>
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Comandos de voz" onClick={() => setIsVoiceHelpOpen(false)} data-lupa-ignore="true">
           <div className="modal-card modal-card--wide" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <h2>Comandos de voz</h2>
@@ -240,6 +252,7 @@ export const AccessibilityWidget = () => {
           </div>
         </div>
       ) : null}
+      <ContentMagnifier enabled={isContentMagnifierEnabled} />
       <ScreenReader enabled={isScreenReaderEnabled} />
       <ToastStack toasts={toasts} />
     </>

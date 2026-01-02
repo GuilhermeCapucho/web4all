@@ -60,6 +60,16 @@ const matchesScreenReaderOn = (normalized: string) =>
 const matchesScreenReaderOff = (normalized: string) =>
   normalized.includes('desligar leitor de tela')
 
+const matchesContentMagnifierOn = (normalized: string) =>
+  normalized.includes('ligar lupa') ||
+  normalized.includes('ativar lupa') ||
+  normalized.includes('habilitar lupa')
+
+const matchesContentMagnifierOff = (normalized: string) =>
+  normalized.includes('desabilitar lupa') ||
+  normalized.includes('desligar lupa') ||
+  normalized.includes('desativar lupa')
+
 export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesHighContrastOn(normalized) ||
   matchesHighContrastOff(normalized) ||
@@ -68,7 +78,9 @@ export const isAccessibilityVoiceCommand = (normalized: string) =>
   matchesFontSizeUp(normalized) ||
   matchesFontSizeDown(normalized) ||
   matchesScreenReaderOn(normalized) ||
-  matchesScreenReaderOff(normalized)
+  matchesScreenReaderOff(normalized) ||
+  matchesContentMagnifierOn(normalized) ||
+  matchesContentMagnifierOff(normalized)
 
 export const buildAccessibilityVoiceCommands = ({
   updateProfile,
@@ -143,6 +155,22 @@ export const buildAccessibilityVoiceCommands = ({
     run: async () => {
       const error = await updateProfile({ screen_reader_enabled: false })
       notify?.(error ?? 'Leitor de tela desativado.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'content-magnifier-on',
+    match: matchesContentMagnifierOn,
+    run: async () => {
+      const error = await updateProfile({ content_magnifier_enabled: true })
+      notify?.(error ?? 'Lupa ativada.', error ? 'warning' : 'success')
+    },
+  },
+  {
+    id: 'content-magnifier-off',
+    match: matchesContentMagnifierOff,
+    run: async () => {
+      const error = await updateProfile({ content_magnifier_enabled: false })
+      notify?.(error ?? 'Lupa desativada.', error ? 'warning' : 'success')
     },
   },
 ]
