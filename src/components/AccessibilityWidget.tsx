@@ -26,6 +26,7 @@ export const AccessibilityWidget = () => {
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false)
   const lastAnnouncedScreenReaderState = useRef<boolean | null>(null)
   const hasToggledScreenReader = useRef(false)
+  const widgetRef = useRef<HTMLDivElement | null>(null)
 
   const fontScale = profile?.font_scale ?? 100
   const highContrast = profile?.high_contrast ?? false
@@ -156,6 +157,20 @@ export const AccessibilityWidget = () => {
     setIsScreenReaderEnabled(persistedScreenReaderEnabled)
   }, [persistedScreenReaderEnabled])
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+      if (widgetRef.current && widgetRef.current.contains(target)) return
+      setIsOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [isOpen])
+
   const voiceCommands = useMemo<VoiceCommand[]>(() => {
     return buildAccessibilityVoiceCommands({
       updateProfile,
@@ -177,7 +192,7 @@ export const AccessibilityWidget = () => {
 
   return (
     <>
-      <div className={`accessibility-widget${isOpen ? ' is-open' : ''}`} data-lupa-ignore="true">
+      <div ref={widgetRef} className={`accessibility-widget${isOpen ? ' is-open' : ''}`} data-lupa-ignore="true">
         <div className="accessibility-actions">
           <button type="button" className="accessibility-toggle" onClick={() => setIsOpen((current) => !current)} aria-label={isOpen ? 'Fechar acessibilidade' : 'Abrir acessibilidade'} aria-expanded={isOpen} aria-controls="accessibility-panel">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true" focusable="false">

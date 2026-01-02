@@ -92,15 +92,17 @@
 }
 
 .accessibility-panel .font-value {
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .font-buttons .ghost {
   border: 1px solid var(--border);
   background: #ffffff;
   color: var(--text);
-  padding: 0.55rem 1.1rem;
-  min-width: 68px;
+  padding: 0.35rem 0.75rem;
+  min-width: 52px;
+  font-size: 0.9rem;
   box-shadow: 0 10px 20px rgba(22, 20, 18, 0.08);
 }
 
@@ -127,6 +129,9 @@
   border: 1px solid var(--border);
   overflow: hidden;
   background: var(--surface);
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
 }
 
 .segmented-control__button {
@@ -813,16 +818,19 @@ label.checkbox {
 .accessibility-panel {
   position: absolute;
   right: calc(100% + 0.75rem);
-  top: 50%;
+  top: calc(50% + 60px);
   transform: translateY(-50%) translateX(8px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 1rem;
+  padding: 0.85rem;
   min-width: 220px;
+  width: min(270px, calc(100vw - 2.5rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   box-shadow: var(--shadow);
   display: grid;
-  gap: 0.9rem;
+  gap: 0.7rem;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -837,6 +845,7 @@ label.checkbox {
 .accessibility-panel h3 {
   margin: 0;
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .accessibility-section {
