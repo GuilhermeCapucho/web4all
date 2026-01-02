@@ -194,7 +194,17 @@ export const AccessibilityWidget = () => {
     <>
       <div ref={widgetRef} className={`accessibility-widget${isOpen ? ' is-open' : ''}`} data-lupa-ignore="true">
         <div className="accessibility-actions">
-          <button type="button" className="accessibility-toggle" onClick={() => setIsOpen((current) => !current)} aria-label={isOpen ? 'Fechar acessibilidade' : 'Abrir acessibilidade'} aria-expanded={isOpen} aria-controls="accessibility-panel">
+          <button
+            type="button"
+            className="accessibility-toggle"
+            onClick={() => {
+              setIsVoiceHelpOpen(false)
+              setIsOpen((current) => !current)
+            }}
+            aria-label={isOpen ? 'Fechar acessibilidade' : 'Abrir acessibilidade'}
+            aria-expanded={isOpen}
+            aria-controls="accessibility-panel"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true" focusable="false">
               <title>Acessibilidade</title>
               <path
@@ -203,7 +213,15 @@ export const AccessibilityWidget = () => {
               />
             </svg>
           </button>
-          <button type="button" className="accessibility-toggle" onClick={() => setIsVoiceHelpOpen((current) => !current)} aria-label="Abrir comandos de voz">
+          <button
+            type="button"
+            className="accessibility-toggle"
+            onClick={() => {
+              setIsOpen(false)
+              setIsVoiceHelpOpen((current) => !current)
+            }}
+            aria-label="Abrir comandos de voz"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false">
               <title>Comandos de voz</title>
               <path

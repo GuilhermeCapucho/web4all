@@ -315,6 +315,7 @@
   place-items: center;
   padding: 1.5rem;
   z-index: 30;
+  animation: modal-fade 0.2s ease;
 }
 
 .modal-card {
@@ -328,6 +329,7 @@
   text-align: center;
   max-height: calc(100vh - 3rem);
   overflow: auto;
+  animation: modal-rise 0.22s ease;
 }
 
 .modal-card--wide {
@@ -416,6 +418,10 @@
   gap: 1rem;
 }
 
+.nav-menu {
+  display: contents;
+}
+
 .nav-links a {
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
@@ -430,6 +436,46 @@
   display: flex;
   gap: 1rem;
   align-items: center;
+}
+
+.nav-toggle {
+  display: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 24px rgba(22, 20, 18, 0.12);
+}
+
+.nav-toggle__bar {
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--text);
+  position: relative;
+}
+
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--text);
+}
+
+.nav-toggle__bar::before {
+  top: -6px;
+}
+
+.nav-toggle__bar::after {
+  top: 6px;
 }
 
 .ghost {
@@ -1056,16 +1102,80 @@ label.checkbox {
   }
 }
 
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 900px) {
   .top-nav {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
     gap: 1rem;
     padding: 1.5rem;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    justify-self: end;
+  }
+
+  .nav-menu {
+    display: grid;
+    grid-column: 1 / -1;
+    width: 100%;
+    gap: 0.75rem;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.25s ease;
+  }
+
+  .top-nav.is-open .nav-menu {
+    max-height: 320px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links a {
+    width: 100%;
+  }
+
+  .nav-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav-actions button {
+    width: 100%;
   }
 
   .auth-layout--split {
     grid-template-columns: 1fr;
     gap: 2rem;
+    padding: 2rem 1.5rem;
   }
 
   .auth-layout--split .auth-card {
@@ -1073,16 +1183,12 @@ label.checkbox {
   }
 
   .auth-photo {
-    min-height: 300px;
-  }
-
-  .nav-actions {
-    flex-direction: column;
-    align-items: flex-start;
+    display: none;
   }
 
   .hero-top {
     align-items: flex-start;
+    gap: 0;
   }
 }
 
@@ -1104,8 +1210,74 @@ label.checkbox {
     align-items: stretch;
   }
 
+  .card-actions .ghost {
+    flex: unset;
+  }
+
+  .card-actions button {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .activity-card .status {
+    margin-top: 10px;
+  }
+
+  .card-header h3 {
+    margin: 0;
+  }
+
+  .card-body p {
+    margin: 0;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .meta-label {
+    letter-spacing: 0.04em;
+  }
+
   .checklist-form {
     grid-template-columns: 1fr;
+  }
+
+  .checklist,
+  .checklist-form,
+  .checklist-form button,
+  .meta-grid,
+  .meta-grid div {
+    min-width: 0;
+  }
+
+  .checklist {
+    padding: 0.85rem;
+  }
+
+  .checklist-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .checklist-header .muted {
+    word-break: break-word;
+  }
+
+  .checklist-form input,
+  .checklist-form button {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .checklist-form button {
+    width: 100%;
+  }
+
+  .activity-card {
+    overflow-wrap: anywhere;
   }
 
   .toast-stack {
@@ -1119,7 +1291,89 @@ label.checkbox {
     max-height: calc(100vh - 2rem);
   }
 
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .view-tabs {
+    justify-content: center;
+  }
+
   .voice-commands {
     column-count: 1;
+  }
+
+  .voice-command-section--break {
+    break-before: auto;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pagination-info {
+    text-align: center;
+  }
+
+  .pagination-button {
+    width: 100%;
+    max-width: 240px;
+  }
+
+  .panel,
+  .activity-card,
+  .auth-card,
+  .modal-card,
+  .metric-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .card-header,
+  .panel-header,
+  .hero-top {
+    gap: 0.75rem;
+  }
+
+  .accessibility-widget {
+    top: auto;
+    bottom: max(5.5rem, env(safe-area-inset-bottom));
+    right: max(0.75rem, env(safe-area-inset-right));
+    transform: none;
+  }
+
+  .accessibility-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    transform: translateY(8px);
+    width: min(320px, calc(100vw - 2rem));
+  }
+
+  .accessibility-widget.is-open .accessibility-panel {
+    transform: translateY(0);
+  }
+
+  .accessibility-toggle {
+    width: clamp(44px, 13vw, 56px);
+    height: clamp(44px, 13vw, 56px);
+  }
+
+  .accessibility-toggle svg {
+    width: clamp(24px, 8vw, 34px);
+    height: clamp(24px, 8vw, 34px);
+  }
+
+  .voice-fab {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    width: clamp(48px, 14vw, 56px);
+    height: clamp(48px, 14vw, 56px);
+  }
+
+  .voice-fab svg {
+    width: clamp(26px, 9vw, 36px);
+    height: clamp(26px, 9vw, 36px);
   }
 }
