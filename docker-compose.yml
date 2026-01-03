@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: ./web4all
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: ${VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}
+    ports:
+      - "8080:80"
+    env_file:
+      - ./web4all/.env

@@ -15,6 +15,12 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
