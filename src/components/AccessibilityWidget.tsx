@@ -137,7 +137,7 @@ export const AccessibilityWidget = () => {
   const toggleScreenReader = useCallback(async () => {
     const isSupported = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined'
     if (!isScreenReaderEnabled && !isSupported) {
-      addToast('Leitor de tela nao suportado neste navegador.', 'warning')
+      addToast('Leitor de tela não suportado neste navegador.', 'warning')
       return
     }
     hasToggledScreenReader.current = true

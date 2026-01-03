@@ -1,35 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { AuthHeader } from '../components/auth/AuthHeader'
 import { AuthPhotoPanel } from '../components/auth/AuthPhotoPanel'
 import { AuthStatusMessage } from '../components/auth/AuthStatusMessage'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Login = () => {
   const navigate = useNavigate()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
-  const [statusVisible, setStatusVisible] = useState(false)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!status) {
-      return
-    }
-    setStatusVisible(true)
-    const hideTimer = window.setTimeout(() => {
-      setStatusVisible(false)
-    }, 5000)
-    const clearTimer = window.setTimeout(() => {
-      setStatus(null)
-    }, 5300)
-    return () => {
-      window.clearTimeout(hideTimer)
-      window.clearTimeout(clearTimer)
-    }
-  }, [status])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -63,7 +46,7 @@ export const Login = () => {
           <AuthStatusMessage message={status} visible={statusVisible} />
         </form>
         <footer>
-          <span className="muted">Ainda nao tem conta?</span>
+          <span className="muted">Ainda não tem conta?</span>
           <Link to="/register">Criar conta</Link>
         </footer>
       </section>

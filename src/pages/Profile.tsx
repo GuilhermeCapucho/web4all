@@ -5,37 +5,20 @@ import { TopNav } from '../components/TopNav'
 import { buildCommonVoiceCommands } from '../voice/commonVoiceCommands'
 import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voice/voiceCommands'
 import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Profile = () => {
   const navigate = useNavigate()
   const { user, profile, updateProfile, signOut } = useAuth()
   const [fullName, setFullName] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
   const [statusTone, setStatusTone] = useState<'success' | 'error'>('success')
-  const [statusVisible, setStatusVisible] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!profile) return
     setFullName(profile.full_name ?? '')
   }, [profile])
-
-  useEffect(() => {
-    if (!status) {
-      return
-    }
-    setStatusVisible(true)
-    const hideTimer = window.setTimeout(() => {
-      setStatusVisible(false)
-    }, 5000)
-    const clearTimer = window.setTimeout(() => {
-      setStatus(null)
-    }, 5300)
-    return () => {
-      window.clearTimeout(hideTimer)
-      window.clearTimeout(clearTimer)
-    }
-  }, [status])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

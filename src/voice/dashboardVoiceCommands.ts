@@ -45,7 +45,7 @@ export const useDashboardVoiceCommands = ({
       if (matches.length > 1) {
         addToast('Encontrei mais de uma atividade com esse nome.', 'warning')
       } else {
-        addToast('Nao encontrei essa atividade.', 'warning')
+        addToast('Não encontrei essa atividade.', 'warning')
       }
       return null
     },
@@ -79,7 +79,7 @@ export const useDashboardVoiceCommands = ({
       if (matches.length > 1) {
         addToast('Encontrei mais de uma subtarefa com esse nome.', 'warning')
       } else {
-        addToast('Nao encontrei essa subtarefa.', 'warning')
+        addToast('Não encontrei essa subtarefa.', 'warning')
       }
       return null
     },
@@ -256,7 +256,7 @@ export const useDashboardVoiceCommands = ({
       const handled = await runVoiceCommands(voiceCommands, { transcript, normalized })
       if (!handled) {
         if (isAccessibilityVoiceCommand(normalized)) return
-        addToast('Comando nao reconhecido.', 'warning')
+        addToast('Comando não reconhecido.', 'warning')
       }
     },
     [addToast, voiceCommands],

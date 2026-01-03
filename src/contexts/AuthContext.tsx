@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {
-      if (!user) return 'Usuario nao autenticado.'
+      if (!user) return 'Usuário não autenticado.'
 
       const { data, error } = await supabase.from('profiles')
         .update({

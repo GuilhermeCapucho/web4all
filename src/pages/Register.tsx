@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { AuthHeader } from '../components/auth/AuthHeader'
 import { AuthPhotoPanel } from '../components/auth/AuthPhotoPanel'
 import { AuthStatusMessage } from '../components/auth/AuthStatusMessage'
 import { VerificationNotice } from '../components/auth/VerificationNotice'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Register = () => {
   const navigate = useNavigate()
@@ -12,27 +13,9 @@ export const Register = () => {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
-  const [statusVisible, setStatusVisible] = useState(false)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
   const [loading, setLoading] = useState(false)
   const [showVerificationNotice, setShowVerificationNotice] = useState(false)
-
-  useEffect(() => {
-    if (!status) {
-      return
-    }
-    setStatusVisible(true)
-    const hideTimer = window.setTimeout(() => {
-      setStatusVisible(false)
-    }, 5000)
-    const clearTimer = window.setTimeout(() => {
-      setStatus(null)
-    }, 5300)
-    return () => {
-      window.clearTimeout(hideTimer)
-      window.clearTimeout(clearTimer)
-    }
-  }, [status])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -85,7 +68,7 @@ export const Register = () => {
         ariaLabel="Aprendizado acessível para todos"
         eyebrow="Web4All"
         title="Aprendizado acessível para todos"
-        subtitle="Cadastre sua conta e acompanhe o desenvolvimento com mais autonomia e inclusǜo."
+        subtitle="Cadastre sua conta e acompanhe o desenvolvimento com mais autonomia e inclusão."
       />
       <VerificationNotice
         open={showVerificationNotice}
