@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { AuthHeader } from '../components/auth/AuthHeader'
+import { AuthPhotoPanel } from '../components/auth/AuthPhotoPanel'
+import { AuthStatusMessage } from '../components/auth/AuthStatusMessage'
 
 export const Login = () => {
   const navigate = useNavigate()
@@ -44,13 +47,7 @@ export const Login = () => {
   return (
     <main className="auth-layout auth-layout--split">
       <section className="auth-card">
-        <header>
-          <img className="auth-logo" src="/favicon.svg" alt="Web4All"/>
-          <h1 className="auth-title">Bem-vindo de volta</h1>
-          <p className="auth-subtitle">
-            Acesse sua conta para continuar
-          </p>
-        </header>
+        <AuthHeader title="Bem-vindo de volta" subtitle="Acesse sua conta para continuar" />
         <form id="login-form" onSubmit={handleSubmit} className="form-grid">
           <label>
             Email
@@ -63,30 +60,20 @@ export const Login = () => {
           <button type="submit" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
-          {status ? (
-            <p className={`status error${statusVisible ? '' : ' is-hidden'}`} role="alert">
-              {status}
-            </p>
-          ) : null}
+          <AuthStatusMessage message={status} visible={statusVisible} />
         </form>
         <footer>
           <span className="muted">Ainda nao tem conta?</span>
           <Link to="/register">Criar conta</Link>
         </footer>
       </section>
-      <section
-        className="auth-photo"
-        style={{ backgroundImage: "url('/students/login-image.jpg')" }}
-        aria-label="Aprendizado acessível para todos"
-      >
-        <div className="auth-photo__content">
-          <p className="auth-photo__eyebrow">Web4All</p>
-          <h2>Aprendizado acessível para todos</h2>
-          <p className="auth-photo__subtitle">
-            Uma plataforma pensada para acolher diferentes necessidades e potencializar cada estudante.
-          </p>
-        </div>
-      </section>
+      <AuthPhotoPanel
+        imageUrl="/students/login-image.jpg"
+        ariaLabel="Aprendizado acessível para todos"
+        eyebrow="Web4All"
+        title="Aprendizado acessível para todos"
+        subtitle="Uma plataforma pensada para acolher diferentes necessidades e potencializar cada estudante."
+      />
     </main>
   )
 }

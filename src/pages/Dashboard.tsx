@@ -4,20 +4,13 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import type { Activity, ChecklistItem } from '../types'
 import { TopNav } from '../components/TopNav'
-import { AgendaPanel } from '../components/dashboard/AgendaPanel'
-import { ActivityModal, type ActivityFormState } from '../components/dashboard/ActivityModal'
-import { ConfirmDeleteModal } from '../components/dashboard/ConfirmDeleteModal'
-import { DashboardHero } from '../components/dashboard/DashboardHero'
-import { ToastStack } from '../components/dashboard/ToastStack'
+import type { ActivityFormState } from '../components/dashboard/ActivityModal'
+import { DashboardMain } from '../components/dashboard/DashboardMain'
+import { DashboardModals } from '../components/dashboard/DashboardModals'
+import type { Toast } from '../components/dashboard/ToastStack'
 import { formatTime, getStreak, toDateString } from '../components/dashboard/activityHelpers'
 import { useDashboardVoiceCommands } from '../voice/dashboardVoiceCommands'
 import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
-
-type Toast = {
-  id: string
-  message: string
-  tone: 'info' | 'success' | 'warning'
-}
 
 const emptyForm: ActivityFormState = {
   title: '',
@@ -645,71 +638,71 @@ export const Dashboard = () => {
   return (
     <div className="app-shell">
       <TopNav />
-      <main className="dashboard" id="main-content">
-        <DashboardHero
-          todayPending={todayPending}
-          todayDone={todayDone}
-          streak={streak}
-          medals={medals}
-          onCreate={() => openCreate()}
-          canCreate={isTeacher}
-          roleLabel={roleLabel}
-          showMetrics={!isTeacher}
-        />
-        <AgendaPanel
-          view={view}
-          filters={filters}
-          categoryOptions={categoryOptions}
-          statusMessage={status}
-          liveMessage={liveMessage}
-          loading={loading}
-          activities={visibleActivities}
-          checklists={checklists}
-          checklistDrafts={checklistDrafts}
-          isTeacher={isTeacher}
-          assignedLabels={assignedLabels}
-          onViewChange={setView}
-          onSearchChange={(value) => setFilters((current) => ({ ...current, search: value }))}
-          onStatusChange={(value) => setFilters((current) => ({ ...current, status: value }))}
-          onCategoryChange={(value) => setFilters((current) => ({ ...current, category: value }))}
-          onQuickStatus={handleQuickStatus}
-          onEdit={openEdit}
-          onDelete={requestDelete}
-          onToggleChecklist={handleToggleChecklist}
-          onAddChecklistItem={handleAddChecklistItem}
-          onChecklistDraftChange={handleChecklistDraftChange}
-        />
-      </main>
-      <ActivityModal
-        open={formOpen}
-        mode={formMode}
-        form={form}
-        saving={saving}
-        isTeacher={isTeacher}
-        students={students}
-        titleInputRef={titleInputRef}
-        onClose={closeForm}
-        onSubmit={handleFormSubmit}
-        onChange={handleFormChange}
+      <DashboardMain
+        hero={{
+          todayPending,
+          todayDone,
+          streak,
+          medals,
+          onCreate: () => openCreate(),
+          canCreate: isTeacher,
+          roleLabel,
+          showMetrics: !isTeacher,
+        }}
+        agenda={{
+          view,
+          filters,
+          categoryOptions,
+          statusMessage: status,
+          liveMessage,
+          loading,
+          activities: visibleActivities,
+          checklists,
+          checklistDrafts,
+          isTeacher,
+          assignedLabels,
+          onViewChange: setView,
+          onSearchChange: (value) => setFilters((current) => ({ ...current, search: value })),
+          onStatusChange: (value) => setFilters((current) => ({ ...current, status: value })),
+          onCategoryChange: (value) => setFilters((current) => ({ ...current, category: value })),
+          onQuickStatus: handleQuickStatus,
+          onEdit: openEdit,
+          onDelete: requestDelete,
+          onToggleChecklist: handleToggleChecklist,
+          onAddChecklistItem: handleAddChecklistItem,
+          onChecklistDraftChange: handleChecklistDraftChange,
+        }}
       />
-      <ConfirmDeleteModal
-        open={Boolean(deleteTarget)}
-        title="Excluir atividade"
-        description={
-          deleteTarget ? (
+      <DashboardModals
+        activityModal={{
+          open: formOpen,
+          mode: formMode,
+          form,
+          saving,
+          isTeacher,
+          students,
+          titleInputRef,
+          onClose: closeForm,
+          onSubmit: handleFormSubmit,
+          onChange: handleFormChange,
+        }}
+        confirmDelete={{
+          open: Boolean(deleteTarget),
+          title: 'Excluir atividade',
+          description: deleteTarget ? (
             <>
               Tem certeza que deseja excluir a atividade <strong>{deleteTarget.title}</strong>?
             </>
-          ) : null
-        }
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={async () => {
-          if (!deleteTarget) return
-          await handleDelete(deleteTarget.id)
-          setDeleteTarget(null)
+          ) : null,
+          onCancel: () => setDeleteTarget(null),
+          onConfirm: async () => {
+            if (!deleteTarget) return
+            await handleDelete(deleteTarget.id)
+            setDeleteTarget(null)
+          },
         }}
+        toasts={toasts}
       />
-      <ToastStack toasts={toasts} />
     </div>
   )
 }

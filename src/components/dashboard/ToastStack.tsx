@@ -1,4 +1,4 @@
-type Toast = {
+export type Toast = {
   id: string
   message: string
   tone: 'info' | 'success' | 'warning'
