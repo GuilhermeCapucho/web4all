@@ -26,6 +26,7 @@ export const AccessibilityWidget = () => {
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false)
   const lastAnnouncedScreenReaderState = useRef<boolean | null>(null)
   const hasToggledScreenReader = useRef(false)
+  const hasAnnouncedVoiceSupport = useRef(false)
   const widgetRef = useRef<HTMLDivElement | null>(null)
 
   const fontScale = profile?.font_scale ?? 100
@@ -158,6 +159,15 @@ export const AccessibilityWidget = () => {
   }, [persistedScreenReaderEnabled])
 
   useEffect(() => {
+    if (!user) return
+    if (hasAnnouncedVoiceSupport.current) return
+    const isVoiceSupported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
+    if (isVoiceSupported) return
+    hasAnnouncedVoiceSupport.current = true
+    addToast('Comandos de voz nao sao suportados neste navegador.', 'warning')
+  }, [addToast, user])
+
+  useEffect(() => {
     if (!isOpen) return
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null
@@ -170,6 +180,15 @@ export const AccessibilityWidget = () => {
       document.removeEventListener('pointerdown', handlePointerDown)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!user) return
+    const handleVoiceError = () => {
+      addToast('Comandos de voz não são suportados neste navegador', 'warning')
+    }
+    window.addEventListener('voice-error', handleVoiceError)
+    return () => window.removeEventListener('voice-error', handleVoiceError)
+  }, [addToast, user])
 
   const voiceCommands = useMemo<VoiceCommand[]>(() => {
     return buildAccessibilityVoiceCommands({
@@ -217,6 +236,11 @@ export const AccessibilityWidget = () => {
             type="button"
             className="accessibility-toggle"
             onClick={() => {
+              const isVoiceSupported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
+              if (!isVoiceSupported) {
+                addToast('Comandos de voz nao sao suportados neste navegador.', 'warning')
+                return
+              }
               setIsOpen(false)
               setIsVoiceHelpOpen((current) => !current)
             }}

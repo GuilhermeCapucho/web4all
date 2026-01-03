@@ -59,6 +59,7 @@ export const VoiceFab = () => {
     }
     recognition.onerror = () => {
       setListening(false)
+      window.dispatchEvent(new CustomEvent('voice-error', { detail: { reason: 'not-allowed' } }))
     }
     recognition.onend = () => {
       setListening(false)
@@ -102,6 +103,7 @@ export const VoiceFab = () => {
       recognitionRef.current.start()
     } catch {
       setListening(false)
+      window.dispatchEvent(new CustomEvent('voice-error', { detail: { reason: 'start-failed' } }))
     }
   }
 
