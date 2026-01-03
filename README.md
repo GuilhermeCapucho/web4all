@@ -4,7 +4,7 @@
 
 Ciencia da Computacao (UNINTER) - Atividades Extensionistas II - Trabalho Final
 
-Desenvolver uma plataforma web acessivel para inclusao digital de pessoas com deficiencia.
+Desenvolver uma plataforma web acessível para inclusão digital de pessoas com deficiência.
 
 ## Stacks
 - React + TypeScript
@@ -16,12 +16,12 @@ Desenvolver uma plataforma web acessivel para inclusao digital de pessoas com de
 ## Funcionalidades
 - Login e cadastro com perfis de aluno e professor
 - Agenda de atividades com status, filtros, checklist e lembretes
-- Vinculo de alunos para professores e atribuicao de atividades
-- Acessibilidade: ajuste de fonte, alto contraste, reduzir animacoes, leitor de tela, lupa de conteudo, destaque de links, espacamento de letras/linhas, filtros para daltonismo
-- Comandos de voz para navegacao, atividades e configuracoes de acessibilidade
-- Navegacao por teclado com setas
+- Vínculo de alunos para professores e atribuição de atividades
+- Acessibilidade: ajuste de fonte, alto contraste, reduzir animações, leitor de tela, lupa de conteúdo, destaque de links, espaçamento de letras/linhas, filtros para daltonismo
+- Comandos de voz para navegação, atividades e configurações de acessibilidade (funciona apenas em navegadores Chromium, como Chrome e Edge; não funciona em Firefox, Mozilla e Safari)
+- Navegação por teclado com setas e Tab
 
-## Acesso de teste (producao)
+## Acesso de teste (produção)
 - Professor: email `web4allteacher@gmail.com`, senha `admin`
 - Aluno: email `web4allstudent@gmail.com`, senha `admin`
 
