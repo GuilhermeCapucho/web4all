@@ -1,20 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { TopNav } from '../components/TopNav'
+import { buildCommonVoiceCommands } from '../voice/commonVoiceCommands'
+import { normalizeVoiceText, runVoiceCommands, type VoiceCommand } from '../voice/voiceCommands'
+import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Profile = () => {
-  const { user, profile, updateProfile } = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, updateProfile, signOut } = useAuth()
   const [fullName, setFullName] = useState('')
-  const [fontScale, setFontScale] = useState(100)
-  const [highContrast, setHighContrast] = useState(false)
-  const [status, setStatus] = useState<string | null>(null)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
+  const [statusTone, setStatusTone] = useState<'success' | 'error'>('success')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!profile) return
     setFullName(profile.full_name ?? '')
-    setFontScale(profile.font_scale ?? 100)
-    setHighContrast(profile.high_contrast ?? false)
   }, [profile])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -23,12 +26,33 @@ export const Profile = () => {
     setStatus(null)
     const error = await updateProfile({
       full_name: fullName.trim() || null,
-      font_scale: fontScale,
-      high_contrast: highContrast,
     })
     setSaving(false)
-    setStatus(error ?? 'Preferencias atualizadas com sucesso.')
+    setStatusTone(error ? 'error' : 'success')
+    setStatus(error ?? 'Perfil atualizado com sucesso.')
   }
+
+  const voiceCommands = useMemo<VoiceCommand[]>(() => {
+    const notify = (message: string, tone: 'info' | 'success' | 'warning' = 'info') => {
+      if (tone === 'info') return
+      setStatusTone(tone === 'success' ? 'success' : 'error')
+      setStatus(message)
+    }
+
+    return buildCommonVoiceCommands({
+      navigate,
+      signOut,
+      notify,
+    })
+  }, [navigate, signOut])
+
+  const handleVoiceCommand = useCallback(async (transcript: string) => {
+    const normalized = normalizeVoiceText(transcript)
+    if (!normalized) return
+    await runVoiceCommands(voiceCommands, { transcript, normalized })
+  }, [voiceCommands])
+
+  useVoiceCommandListener(handleVoiceCommand)
 
   return (
     <div className="app-shell">
@@ -39,7 +63,7 @@ export const Profile = () => {
             <div>
               <h1>Perfil</h1>
               <p className="muted">
-                Atualize seu nome e preferencias de acessibilidade.
+                Atualize seu nome.
               </p>
             </div>
           </header>
@@ -52,24 +76,11 @@ export const Profile = () => {
               Nome completo
               <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)}/>
             </label>
-            <label>
-              Tamanho da fonte
-              <select value={fontScale} onChange={(event) => setFontScale(Number(event.target.value))}>
-                <option value={100}>Normal (100%)</option>
-                <option value={110}>Grande (110%)</option>
-                <option value={120}>Muito grande (120%)</option>
-                <option value={130}>Extra grande (130%)</option>
-              </select>
-            </label>
-            <label className="checkbox">
-              <input type="checkbox" checked={highContrast} onChange={(event) => setHighContrast(event.target.checked)}/>
-              Ativar alto contraste
-            </label>
             <button type="submit" disabled={saving}>
-              {saving ? 'Salvando...' : 'Salvar preferencias'}
+              {saving ? 'Salvando...' : 'Salvar perfil'}
             </button>
             {status ? (
-              <p className={`status ${status.includes('sucesso') ? 'success' : 'error'}`}>
+              <p className={`status ${statusTone === 'success' ? 'success' : 'error'}${statusVisible ? '' : ' is-hidden'}`} role={statusTone === 'success' ? 'status' : 'alert'} aria-live="polite" aria-atomic="true">
                 {status}
               </p>
             ) : null}

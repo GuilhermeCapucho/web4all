@@ -9,7 +9,7 @@ type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<string | null>
-  signUp: (email: string, password: string) => Promise<string | null>
+  signUp: (email: string, password: string, fullName?: string) => Promise<string | null>
   signOut: () => Promise<string | null>
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<string | null>
@@ -25,8 +25,20 @@ const applyAccessibilityPrefs = (profile: Profile | null) => {
   const root = document.documentElement
   const scale = profile?.font_scale ? profile.font_scale / 100 : 1
   const contrast = profile?.high_contrast ? 'high' : 'normal'
+  const motion = profile?.reduce_motion ? 'reduced' : 'normal'
+  const colorBlindness = profile?.color_blindness ?? 'none'
+  const contentMagnifier = profile?.content_magnifier_enabled ? 'on' : 'off'
+  const linkHighlight = profile?.link_highlight_enabled ? 'highlight' : 'normal'
+  const letterSpacing = profile?.letter_spacing ?? 0
+  const lineSpacing = profile?.line_spacing ?? 1.4
   root.style.setProperty('--font-scale', String(scale))
+  root.style.setProperty('--letter-spacing', `${letterSpacing}em`)
+  root.style.setProperty('--line-height', String(lineSpacing))
   root.dataset.contrast = contrast
+  root.dataset.motion = motion
+  root.dataset.colorblind = colorBlindness
+  root.dataset.contentmagnifier = contentMagnifier
+  root.dataset.links = linkHighlight
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -37,7 +49,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const user = session?.user ?? null
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase.from('profiles').select('id, full_name, font_scale, high_contrast').eq('id', userId).single()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, link_highlight_enabled, letter_spacing, line_spacing, color_blindness, role')
+      .eq('id', userId)
+      .single()
 
     if (error) {
       return
@@ -55,16 +71,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {
-      if (!user) return 'Usuario nao autenticado.'
+      if (!user) return 'Usuário não autenticado.'
 
       const { data, error } = await supabase.from('profiles')
         .update({
           full_name: updates.full_name ?? profile?.full_name ?? null,
           font_scale: updates.font_scale ?? profile?.font_scale ?? 100,
           high_contrast: updates.high_contrast ?? profile?.high_contrast ?? false,
+          reduce_motion: updates.reduce_motion ?? profile?.reduce_motion ?? false,
+          screen_reader_enabled: updates.screen_reader_enabled ?? profile?.screen_reader_enabled ?? false,
+          content_magnifier_enabled: updates.content_magnifier_enabled ?? profile?.content_magnifier_enabled ?? false,
+          link_highlight_enabled: updates.link_highlight_enabled ?? profile?.link_highlight_enabled ?? false,
+          letter_spacing: updates.letter_spacing ?? profile?.letter_spacing ?? 0,
+          line_spacing: updates.line_spacing ?? profile?.line_spacing ?? 1.4,
+          color_blindness: updates.color_blindness ?? profile?.color_blindness ?? 'none',
         })
         .eq('id', user.id)
-        .select('id, full_name, font_scale, high_contrast')
+        .select('id, full_name, font_scale, high_contrast, reduce_motion, screen_reader_enabled, content_magnifier_enabled, link_highlight_enabled, letter_spacing, line_spacing, color_blindness, role')
         .single()
 
       if (error) {
@@ -81,8 +104,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return error ? error.message : null
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+    const cleanName = fullName?.trim()
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: cleanName ? { data: { full_name: cleanName } } : undefined,
+    })
     return error ? error.message : null
   }, [])
 

@@ -1,25 +1,94 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
-import type { Activity } from '../types'
+import type { Activity, ChecklistItem } from '../types'
 import { TopNav } from '../components/TopNav'
+import type { ActivityFormState } from '../components/dashboard/ActivityModal'
+import { DashboardMain } from '../components/dashboard/DashboardMain'
+import { DashboardModals } from '../components/dashboard/DashboardModals'
+import type { Toast } from '../components/dashboard/ToastStack'
+import { formatTime, getStreak, toDateString } from '../components/dashboard/activityHelpers'
+import { useDashboardVoiceCommands } from '../voice/dashboardVoiceCommands'
+import { useVoiceCommandListener } from '../voice/useVoiceCommandListener'
 
-type ActivityFormState = {
-  title: string
-  description: string
+const emptyForm: ActivityFormState = {
+  title: '',
+  description: '',
+  status: 'todo',
+  category: '',
+  due_date: '',
+  due_time: '',
+  duration_minutes: '',
+  recurrence: 'none',
+  assigned_to: '',
 }
 
-const emptyForm: ActivityFormState = { title: '', description: '' }
-
 export const Dashboard = () => {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, signOut } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
+  const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({})
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
+  const [liveMessage, setLiveMessage] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [form, setForm] = useState<ActivityFormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingForm, setEditingForm] = useState<ActivityFormState>(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Activity | null>(null)
+  const [view, setView] = useState<'list' | 'today' | 'week'>('list')
+  const [filters, setFilters] = useState({ search: '', status: 'all', category: 'all' })
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [checklistDrafts, setChecklistDrafts] = useState<Record<string, string>>({})
+  const [students, setStudents] = useState<Array<{ id: string; label: string }>>([])
+  const [assignedLabels, setAssignedLabels] = useState<Record<string, string>>({})
+  const notifiedRef = useRef<Set<string>>(new Set())
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const isTeacher = profile?.role === 'teacher'
+  const roleLabel =
+    profile?.role === 'teacher' ? 'Professor' : profile?.role === 'caregiver' ? 'Familiar' : 'Aluno'
+
+  const addToast = useCallback((message: string, tone: Toast['tone'] = 'info') => {
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `toast-${Date.now()}`
+    setToasts((current) => [...current, { id, message, tone }])
+    setLiveMessage(message)
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id))
+    }, 4500)
+  }, [])
+
+  const closeForm = useCallback(() => {
+    setFormOpen(false)
+    setSaving(false)
+  }, [])
+
+  const handleFormChange = useCallback((next: Partial<ActivityFormState>) => {
+    setForm((current) => ({ ...current, ...next }))
+  }, [])
+
+  const handleChecklistDraftChange = useCallback((activityId: string, value: string) => {
+    setChecklistDrafts((current) => ({
+      ...current,
+      [activityId]: value,
+    }))
+  }, [])
+
+  const logHistory = useCallback(
+    async (activityId: string, eventType: string, fromStatus?: Activity['status'], toStatus?: Activity['status']) => {
+      if (!user) return
+      await supabase.from('activity_history').insert({
+        activity_id: activityId,
+        user_id: user.id,
+        event_type: eventType,
+        from_status: fromStatus ?? null,
+        to_status: toStatus ?? null,
+      })
+    },
+    [user],
+  )
 
   const sortedActivities = useMemo(
     () =>
@@ -27,11 +96,22 @@ export const Dashboard = () => {
     [activities],
   )
 
+  const categoryOptions = useMemo(() => {
+    const unique = new Set(
+      activities.map((activity) => activity.category).filter((value): value is string => Boolean(value)),
+    )
+    return Array.from(unique)
+  }, [activities])
+
   const fetchActivities = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data, error } = await supabase.from('activities').select('id, user_id, title, description, created_at, updated_at').eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('activities')
+      .select(
+        'id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at',
+      )
+      .order('created_at', { ascending: false })
 
     if (error) {
       setStatus(error.message)
@@ -39,88 +119,301 @@ export const Dashboard = () => {
       return
     }
 
-    setActivities(data ?? [])
+    const activitiesData = data ?? []
+    setActivities(activitiesData)
+
+    const assignedIds = Array.from(
+      new Set(activitiesData.map((activity) => activity.assigned_to).filter((id): id is string => Boolean(id))),
+    )
+    if (assignedIds.length > 0) {
+      const { data: assignedProfiles, error: assignedError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', assignedIds)
+
+      if (!assignedError) {
+        const nextLabels: Record<string, string> = {}
+        ;(assignedProfiles ?? []).forEach((student) => {
+          nextLabels[student.id] = student.full_name?.trim() || 'Aluno sem nome'
+        })
+        setAssignedLabels((current) => ({ ...current, ...nextLabels }))
+      }
+    }
+
+    if (activitiesData.length === 0) {
+      setChecklists({})
+      setLoading(false)
+      return
+    }
+
+    const activityIds = activitiesData.map((activity) => activity.id)
+    const { data: checklistData, error: checklistError } = await supabase
+      .from('activity_checklist')
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .in('activity_id', activityIds)
+      .order('created_at', { ascending: true })
+
+    if (checklistError) {
+      setStatus(checklistError.message)
+      setLoading(false)
+      return
+    }
+
+    const grouped: Record<string, ChecklistItem[]> = {}
+    ;(checklistData ?? []).forEach((item) => {
+      if (!grouped[item.activity_id]) {
+        grouped[item.activity_id] = []
+      }
+      grouped[item.activity_id].push(item)
+    })
+    setChecklists(grouped)
     setLoading(false)
   }, [user])
+
+  const fetchStudents = useCallback(async () => {
+    if (!user || !isTeacher) {
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+    const { data: links, error: linksError } = await supabase
+      .from('teacher_students')
+      .select('student_id')
+      .eq('teacher_id', user.id)
+
+    if (linksError) {
+      setStatus(linksError.message)
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const studentIds = (links ?? []).map((link) => link.student_id)
+    if (studentIds.length === 0) {
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', studentIds)
+
+    if (profilesError) {
+      setStatus(profilesError.message)
+      setStudents([])
+      setAssignedLabels({})
+      return
+    }
+
+    const labels: Record<string, string> = {}
+    const options = (profilesData ?? []).map((student) => {
+      const label = student.full_name?.trim() || 'Aluno sem nome'
+      labels[student.id] = label
+      return { id: student.id, label }
+    })
+
+    setStudents(options)
+    setAssignedLabels(labels)
+  }, [isTeacher, user])
 
   useEffect(() => {
     fetchActivities()
   }, [fetchActivities])
 
-  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!user) return
-    setCreating(true)
-    setStatus(null)
+  useEffect(() => {
+    fetchStudents()
+  }, [fetchStudents])
 
-    const { data, error } = await supabase
-      .from('activities')
-      .insert({
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        user_id: user.id,
-      })
-      .select('id, user_id, title, description, created_at, updated_at')
-      .single()
+  useEffect(() => {
+    if (!isTeacher || formMode !== 'create' || form.assigned_to || students.length === 0) return
+    setForm((current) => ({ ...current, assigned_to: students[0].id }))
+  }, [form.assigned_to, formMode, isTeacher, students])
 
-    setCreating(false)
-
-    if (error) {
-      setStatus(error.message)
+  useEffect(() => {
+    if (!formOpen) {
+      previousFocusRef.current?.focus()
       return
     }
+    const focusTimer = window.setTimeout(() => {
+      titleInputRef.current?.focus()
+    }, 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [formOpen])
 
-    setActivities((current) => [data, ...current])
-    setForm(emptyForm)
+  useEffect(() => {
+    if (!formOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      closeForm()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [closeForm, formOpen])
+
+  useEffect(() => {
+    if (activities.length === 0) return
+    const checkReminders = () => {
+      const now = new Date()
+      const soon = new Date(now.getTime() + 10 * 60 * 1000)
+      activities.forEach((activity) => {
+        if (activity.status === 'done') return
+        if (!activity.due_date || !activity.due_time) return
+        const due = new Date(`${activity.due_date}T${activity.due_time}`)
+        if (due >= now && due <= soon && !notifiedRef.current.has(activity.id)) {
+          addToast(`Lembrete: ${activity.title} as ${formatTime(activity.due_time)}`, 'warning')
+          notifiedRef.current.add(activity.id)
+        }
+      })
+    }
+
+    checkReminders()
+    const interval = window.setInterval(checkReminders, 60000)
+    return () => window.clearInterval(interval)
+  }, [activities, addToast])
+
+
+
+  const openCreate = (prefill?: Partial<ActivityFormState>) => {
+    if (!isTeacher) {
+      setStatus('Apenas professores podem criar atividades.')
+      return
+    }
+    previousFocusRef.current = document.activeElement as HTMLElement | null
+    setFormMode('create')
+    setEditingId(null)
+    setForm({
+      ...emptyForm,
+      ...prefill,
+    })
+    setFormOpen(true)
   }
 
-  const handleEditStart = (activity: Activity) => {
+  const openEdit = (activity: Activity) => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
+    setFormMode('edit')
     setEditingId(activity.id)
-    setEditingForm({
+    setForm({
       title: activity.title,
       description: activity.description ?? '',
+      status: activity.status,
+      category: activity.category ?? '',
+      due_date: activity.due_date ?? '',
+      due_time: activity.due_time ?? '',
+      duration_minutes: activity.duration_minutes ? String(activity.duration_minutes) : '',
+      recurrence: activity.recurrence ?? 'none',
+      assigned_to: activity.assigned_to ?? '',
     })
+    setFormOpen(true)
   }
 
-  const handleEditCancel = () => {
-    setEditingId(null)
-    setEditingForm(emptyForm)
-  }
-
-  const handleEditSave = async (activityId: string) => {
+  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (!user) return
+    if (!isTeacher) {
+      setStatus('Apenas professores podem criar ou editar atividades.')
+      return
+    }
+    setSaving(true)
     setStatus(null)
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      status: form.status,
+      category: form.category.trim() || null,
+      due_date: form.due_date || null,
+      due_time: form.due_time || null,
+      duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
+      recurrence: form.recurrence === 'none' ? null : form.recurrence,
+    }
+
+    if (!form.assigned_to) {
+      setSaving(false)
+      setStatus('Selecione um aluno para a atividade.')
+      return
+    }
+
+    const now = new Date().toISOString()
+
+    if (formMode === 'create') {
+      const { data, error } = await supabase
+        .from('activities')
+        .insert({
+          ...payload,
+          user_id: user.id,
+          created_by: user.id,
+          assigned_to: form.assigned_to,
+          completed_at: form.status === 'done' ? now : null,
+        })
+        .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
+        .single()
+
+      setSaving(false)
+
+      if (error) {
+        setStatus(error.message)
+        return
+      }
+
+      setActivities((current) => [data, ...current])
+      await logHistory(data.id, 'created')
+      if (form.status === 'done') {
+        await logHistory(data.id, 'status_changed', 'todo', 'done')
+      }
+      setForm(emptyForm)
+      setFormOpen(false)
+      addToast('Atividade criada com sucesso.', 'success')
+      return
+    }
+
+    if (!editingId) {
+      setSaving(false)
+      return
+    }
+
+    const original = activities.find((activity) => activity.id === editingId)
+    const fromStatus = original?.status
+    const completedAt = payload.status === 'done' ? (fromStatus === 'done' ? original?.completed_at ?? now : now) : null
+    const updates = {
+      ...payload,
+      assigned_to: form.assigned_to,
+      completed_at: completedAt,
+      reopened_at: null as string | null,
+    }
+
+    if (fromStatus === 'done' && payload.status !== 'done') {
+      updates.reopened_at = now
+    }
 
     const { data, error } = await supabase
       .from('activities')
-      .update({
-        title: editingForm.title.trim(),
-        description: editingForm.description.trim() || null,
-      })
-      .eq('id', activityId)
-      .eq('user_id', user.id)
-      .select('id, user_id, title, description, created_at, updated_at')
+      .update(updates)
+      .eq('id', editingId)
+      .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
       .single()
+
+    setSaving(false)
 
     if (error) {
       setStatus(error.message)
       return
     }
 
-    setActivities((current) =>
-      current.map((activity) => (activity.id === activityId ? data : activity)),
-    )
-    handleEditCancel()
+    setActivities((current) => current.map((activity) => (activity.id === editingId ? data : activity)))
+    if (fromStatus && fromStatus !== payload.status) {
+      await logHistory(editingId, 'status_changed', fromStatus, payload.status)
+    }
+    setFormOpen(false)
+    addToast('Atividade atualizada.', 'success')
   }
 
   const handleDelete = async (activityId: string) => {
     if (!user) return
     setStatus(null)
-    const { error } = await supabase
-      .from('activities')
-      .delete()
-      .eq('id', activityId)
-      .eq('user_id', user.id)
+    const { error } = await supabase.from('activities').delete().eq('id', activityId)
 
     if (error) {
       setStatus(error.message)
@@ -128,117 +421,288 @@ export const Dashboard = () => {
     }
 
     setActivities((current) => current.filter((activity) => activity.id !== activityId))
+    setChecklists((current) => {
+      const next = { ...current }
+      delete next[activityId]
+      return next
+    })
+    addToast('Atividade removida.', 'info')
   }
+
+  const requestDelete = (activity: Activity) => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
+    setDeleteTarget(activity)
+  }
+
+  const handleQuickStatus = async (activity: Activity, nextStatus: Activity['status']) => {
+    if (!user) return
+    if (isTeacher && nextStatus === 'done') {
+      setStatus('Apenas alunos podem concluir atividades.')
+      return
+    }
+    const now = new Date().toISOString()
+    const updates = {
+      status: nextStatus,
+      completed_at: nextStatus === 'done' ? now : null,
+      reopened_at: activity.status === 'done' && nextStatus !== 'done' ? now : null,
+    }
+
+    const { data, error } = await supabase
+      .from('activities')
+      .update(updates)
+      .eq('id', activity.id)
+      .select('id, user_id, created_by, assigned_to, title, description, created_at, updated_at, status, category, due_date, due_time, duration_minutes, recurrence, completed_at, reopened_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setActivities((current) => current.map((item) => (item.id === activity.id ? data : item)))
+    await logHistory(activity.id, 'status_changed', activity.status, nextStatus)
+
+    if (nextStatus === 'done') {
+      addToast('Parabens, concluída!', 'success')
+    } else if (nextStatus === 'paused') {
+      addToast('Pedido de ajuda enviado.', 'warning')
+    } else {
+      addToast('Atividade reaberta.', 'info')
+    }
+  }
+
+  const addChecklistItemByTitle = async (activityId: string, title: string) => {
+    if (!user) return
+    const safeTitle = title.trim()
+    if (!safeTitle) return
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .insert({ activity_id: activityId, title: safeTitle })
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: [...(current[activityId] ?? []), data],
+    }))
+  }
+
+  const setChecklistItemDone = async (activityId: string, item: ChecklistItem, isDone: boolean) => {
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .update({
+        is_done: isDone,
+        completed_at: isDone ? new Date().toISOString() : null,
+      })
+      .eq('id', item.id)
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: (current[activityId] ?? []).map((entry) => (entry.id === item.id ? data : entry)),
+    }))
+  }
+
+  const handleAddChecklistItem = async (activityId: string) => {
+    if (!user) return
+    const title = (checklistDrafts[activityId] ?? '').trim()
+    if (!title) return
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .insert({ activity_id: activityId, title })
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: [...(current[activityId] ?? []), data],
+    }))
+    setChecklistDrafts((current) => ({ ...current, [activityId]: '' }))
+  }
+
+  const handleToggleChecklist = async (activityId: string, item: ChecklistItem) => {
+    const { data, error } = await supabase
+      .from('activity_checklist')
+      .update({
+        is_done: !item.is_done,
+        completed_at: item.is_done ? null : new Date().toISOString(),
+      })
+      .eq('id', item.id)
+      .select('id, activity_id, title, is_done, created_at, completed_at')
+      .single()
+
+    if (error) {
+      setStatus(error.message)
+      return
+    }
+
+    setChecklists((current) => ({
+      ...current,
+      [activityId]: (current[activityId] ?? []).map((entry) => (entry.id === item.id ? data : entry)),
+    }))
+  }
+
+  const todayString = toDateString(new Date())
+  const todayPending = activities.filter(
+    (activity) => activity.due_date === todayString && activity.status !== 'done',
+  ).length
+  const todayDone = activities.filter((activity) => activity.completed_at?.slice(0, 10) === todayString).length
+
+  const streak = getStreak(activities)
+  const completedCount = activities.filter((activity) => activity.status === 'done').length
+  const medals = [
+    { id: 'medal-5', label: 'Concluiu 5 atividades', unlocked: completedCount >= 5 },
+    { id: 'medal-10', label: 'Concluiu 10 atividades', unlocked: completedCount >= 10 },
+    { id: 'medal-20', label: 'Concluiu 20 atividades', unlocked: completedCount >= 20 },
+  ]
+
+  const visibleActivities = useMemo(() => {
+    const now = new Date()
+    const weekEnd = new Date(now)
+    weekEnd.setDate(now.getDate() + 6)
+
+    return sortedActivities.filter((activity) => {
+      if (view === 'today' && activity.due_date !== todayString) {
+        if (!activity.due_date) {
+          const createdDate = activity.created_at.slice(0, 10)
+          if (createdDate !== todayString) {
+            return false
+          }
+        } else {
+          return false
+        }
+      }
+      if (view === 'week') {
+        if (!activity.due_date) {
+          const createdDate = new Date(`${activity.created_at.slice(0, 10)}T00:00:00`)
+          if (createdDate < new Date(`${todayString}T00:00:00`) || createdDate > weekEnd) {
+            return false
+          }
+        } else {
+          const due = new Date(`${activity.due_date}T00:00:00`)
+          if (due < new Date(`${todayString}T00:00:00`) || due > weekEnd) {
+            return false
+          }
+        }
+      }
+      if (filters.status !== 'all' && activity.status !== filters.status) {
+        return false
+      }
+      if (filters.category !== 'all') {
+        if (filters.category === 'none' && activity.category) return false
+        if (filters.category !== 'none' && activity.category !== filters.category) return false
+      }
+      if (filters.search) {
+        const query = filters.search.toLowerCase()
+        const haystack = `${activity.title} ${activity.description ?? ''}`.toLowerCase()
+        if (!haystack.includes(query)) return false
+      }
+      return true
+    })
+  }, [filters.category, filters.search, filters.status, sortedActivities, todayString, view])
+
+  const { handleVoiceCommand } = useDashboardVoiceCommands({
+    navigate,
+    signOut,
+    activities,
+    visibleActivities,
+    checklists,
+    isTeacher,
+    addToast,
+    setView,
+    handleQuickStatus,
+    requestDelete,
+    addChecklistItemByTitle,
+    setChecklistItemDone,
+  })
+
+  useVoiceCommandListener(handleVoiceCommand)
+
 
   return (
     <div className="app-shell">
       <TopNav />
-      <main className="dashboard" id="main-content">
-        <section className="panel">
-          <header className="panel-header">
-            <div>
-              <h1>Suas atividades</h1>
-              <p className="muted">
-                Crie, edite e organize suas tarefas pessoais em um lugar acessivel.
-              </p>
-            </div>
-          </header>
-          <form className="form-grid" onSubmit={handleCreate}>
-            <label>
-              Titulo
-              <input
-                type="text"
-                value={form.title}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, title: event.target.value }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Descricao
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
-                }
-                rows={3}
-              />
-            </label>
-            <button type="submit" disabled={creating}>
-              {creating ? 'Salvando...' : 'Adicionar atividade'}
-            </button>
-          </form>
-          {status ? (
-            <p className="status error" role="alert">
-              {status}
-            </p>
-          ) : null}
-        </section>
-
-        <section className="panel">
-          <header className="panel-header">
-            <h2>Lista</h2>
-            {loading ? <span className="muted">Carregando...</span> : null}
-          </header>
-          <div className="activity-list" aria-live="polite">
-            {sortedActivities.length === 0 && !loading ? (
-              <p className="muted">Nenhuma atividade cadastrada ainda.</p>
-            ) : null}
-            {sortedActivities.map((activity) => (
-              <article key={activity.id} className="activity-card">
-                {editingId === activity.id ? (
-                  <div className="form-grid">
-                    <label>
-                      Titulo
-                      <input type="text" value={editingForm.title}
-                        onChange={(event) =>
-                          setEditingForm((current) => ({...current, title: event.target.value}))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Descricao
-                      <textarea value={editingForm.description}
-                        onChange={(event) =>
-                          setEditingForm((current) => ({...current, description: event.target.value}))
-                        }
-                        rows={3}
-                      />
-                    </label>
-                    <div className="row">
-                      <button type="button" onClick={() => handleEditSave(activity.id)}>
-                        Salvar
-                      </button>
-                      <button type="button" className="ghost" onClick={handleEditCancel}>
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <h3>{activity.title}</h3>
-                      {activity.description ? <p>{activity.description}</p> : null}
-                      <p className="muted">
-                        Criado em {new Date(activity.created_at).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    <div className="row">
-                      <button type="button" onClick={() => handleEditStart(activity)}>
-                        Editar
-                      </button>
-                      <button type="button" className="ghost danger" onClick={() => handleDelete(activity.id)}>
-                        Excluir
-                      </button>
-                    </div>
-                  </>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      </main>
+      <DashboardMain
+        hero={{
+          todayPending,
+          todayDone,
+          streak,
+          medals,
+          onCreate: () => openCreate(),
+          canCreate: isTeacher,
+          roleLabel,
+          showMetrics: !isTeacher,
+        }}
+        agenda={{
+          view,
+          filters,
+          categoryOptions,
+          statusMessage: status,
+          liveMessage,
+          loading,
+          activities: visibleActivities,
+          checklists,
+          checklistDrafts,
+          isTeacher,
+          assignedLabels,
+          onViewChange: setView,
+          onSearchChange: (value) => setFilters((current) => ({ ...current, search: value })),
+          onStatusChange: (value) => setFilters((current) => ({ ...current, status: value })),
+          onCategoryChange: (value) => setFilters((current) => ({ ...current, category: value })),
+          onQuickStatus: handleQuickStatus,
+          onEdit: openEdit,
+          onDelete: requestDelete,
+          onToggleChecklist: handleToggleChecklist,
+          onAddChecklistItem: handleAddChecklistItem,
+          onChecklistDraftChange: handleChecklistDraftChange,
+        }}
+      />
+      <DashboardModals
+        activityModal={{
+          open: formOpen,
+          mode: formMode,
+          form,
+          saving,
+          isTeacher,
+          students,
+          titleInputRef,
+          onClose: closeForm,
+          onSubmit: handleFormSubmit,
+          onChange: handleFormChange,
+        }}
+        confirmDelete={{
+          open: Boolean(deleteTarget),
+          title: 'Excluir atividade',
+          description: deleteTarget ? (
+            <>
+              Tem certeza que deseja excluir a atividade <strong>{deleteTarget.title}</strong>?
+            </>
+          ) : null,
+          onCancel: () => setDeleteTarget(null),
+          onConfirm: async () => {
+            if (!deleteTarget) return
+            await handleDelete(deleteTarget.id)
+            setDeleteTarget(null)
+          },
+        }}
+        toasts={toasts}
+      />
     </div>
   )
 }

@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { AuthHeader } from '../components/auth/AuthHeader'
+import { AuthPhotoPanel } from '../components/auth/AuthPhotoPanel'
+import { AuthStatusMessage } from '../components/auth/AuthStatusMessage'
+import { VerificationNotice } from '../components/auth/VerificationNotice'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Register = () => {
   const navigate = useNavigate()
@@ -8,14 +13,15 @@ export const Register = () => {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
   const [loading, setLoading] = useState(false)
+  const [showVerificationNotice, setShowVerificationNotice] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLoading(true)
     setStatus(null)
-    const error = await signUp(email, password)
+    const error = await signUp(email, password, fullName)
     if (error) {
       setStatus(error)
       setLoading(false)
@@ -27,25 +33,17 @@ export const Register = () => {
     }
 
     setLoading(false)
-    navigate('/app', { replace: true })
+    setShowVerificationNotice(true)
   }
 
   return (
-    <main className="auth-layout">
-      <a className="skip-link" href="#register-form">
-        Pular para o formulario
-      </a>
+    <main className="auth-layout auth-layout--split">
       <section className="auth-card">
-        <header>
-          <h1>Criar conta</h1>
-          <p className="muted">
-            Configure seu perfil e personalize acessibilidade em poucos passos.
-          </p>
-        </header>
+        <AuthHeader title="Criar conta" subtitle="Cadastre-se para acessar todos os recursos da plataforma" />
         <form id="register-form" onSubmit={handleSubmit} className="form-grid">
           <label>
             Nome completo
-            <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name"/>
+            <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} required autoComplete="name"/>
           </label>
           <label>
             Email
@@ -58,17 +56,32 @@ export const Register = () => {
           <button type="submit" disabled={loading}>
             {loading ? 'Criando...' : 'Criar conta'}
           </button>
-          {status ? (
-            <p className="status error" role="alert">
-              {status}
-            </p>
-          ) : null}
+          <AuthStatusMessage message={status} visible={statusVisible} />
         </form>
         <footer>
           <span className="muted">Ja tem conta?</span>
           <Link to="/login">Entrar</Link>
         </footer>
       </section>
+      <AuthPhotoPanel
+        imageUrl="/students/register-image.jpg"
+        ariaLabel="Aprendizado acessível para todos"
+        eyebrow="Web4All"
+        title="Aprendizado acessível para todos"
+        subtitle="Cadastre sua conta e acompanhe o desenvolvimento com mais autonomia e inclusão."
+      />
+      <VerificationNotice
+        open={showVerificationNotice}
+        onDismiss={() => {
+          setShowVerificationNotice(false)
+          navigate('/login', { replace: true })
+        }}
+        onConfirm={() => {
+          setShowVerificationNotice(false)
+          navigate('/login', { replace: true })
+        }}
+      />
     </main>
   )
 }
+

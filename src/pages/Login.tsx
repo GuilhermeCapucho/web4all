@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { AuthHeader } from '../components/auth/AuthHeader'
+import { AuthPhotoPanel } from '../components/auth/AuthPhotoPanel'
+import { AuthStatusMessage } from '../components/auth/AuthStatusMessage'
+import { useTransientStatus } from '../hooks/useTransientStatus'
 
 export const Login = () => {
   const navigate = useNavigate()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
+  const { status, setStatus, visible: statusVisible } = useTransientStatus()
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -24,17 +28,9 @@ export const Login = () => {
   }
 
   return (
-    <main className="auth-layout">
-      <a className="skip-link" href="#login-form">
-        Pular para o formulario
-      </a>
+    <main className="auth-layout auth-layout--split">
       <section className="auth-card">
-        <header>
-          <h1>Bem-vindo de volta</h1>
-          <p className="muted">
-            Entre para acessar suas atividades e preferencias de acessibilidade.
-          </p>
-        </header>
+        <AuthHeader title="Bem-vindo de volta" subtitle="Acesse sua conta para continuar" />
         <form id="login-form" onSubmit={handleSubmit} className="form-grid">
           <label>
             Email
@@ -47,17 +43,20 @@ export const Login = () => {
           <button type="submit" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
-          {status ? (
-            <p className="status error" role="alert">
-              {status}
-            </p>
-          ) : null}
+          <AuthStatusMessage message={status} visible={statusVisible} />
         </form>
         <footer>
-          <span className="muted">Ainda nao tem conta?</span>
+          <span className="muted">Ainda não tem conta?</span>
           <Link to="/register">Criar conta</Link>
         </footer>
       </section>
+      <AuthPhotoPanel
+        imageUrl="/students/login-image.jpg"
+        ariaLabel="Aprendizado acessível para todos"
+        eyebrow="Web4All"
+        title="Aprendizado acessível para todos"
+        subtitle="Uma plataforma pensada para acolher diferentes necessidades e potencializar cada estudante."
+      />
     </main>
   )
 }
