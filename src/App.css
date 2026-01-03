@@ -1302,8 +1302,10 @@ label.checkbox {
   }
 
   .toast-stack {
-    right: 1rem;
-    left: 1rem;
+    left: max(1rem, env(safe-area-inset-left));
+    right: auto;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    width: min(320px, calc(100vw - 2rem));
   }
 
   .modal-card {
@@ -1396,5 +1398,11 @@ label.checkbox {
   .voice-fab svg {
     width: clamp(26px, 9vw, 36px);
     height: clamp(26px, 9vw, 36px);
+  }
+
+  .toast {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    border-radius: 12px;
   }
 }
